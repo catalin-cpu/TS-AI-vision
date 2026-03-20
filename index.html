@@ -55,19 +55,32 @@
     <a href="#" class="nav-link">Integrations</a>
     <a href="#" class="nav-link">Resources <svg class="nav-chevron" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></a>
     <button class="btn-login">Login</button>
-    <button class="btn-trial">Free trial</button>
+    <button class="btn-trial" onclick="window.open('https://hub.touchstay.com/sign-up','_blank')">Free trial</button>
   </div>
 </nav>
 
 
 <div class="wrap">
 
+  <!-- HERO HEAD -->
+  <div class="hero-head">
+    <div class="pill"><span class="pill-dot"></span>AI-powered guidebook builder</div>
+    <h1>Build a guidebook<br>your guests will <em>love</em></h1>
+    <p>No forms. No uploads. Just chat — and watch your digital guidebook come to life in minutes.</p>
+  </div>
+
+  <!-- INTERACTIVE ROW -->
+  <div class="interactive">
+
   <!-- CHAT -->
   <div class="chat">
-    <div class="chat-top">
-      <div class="pill"><span class="pill-dot"></span>Your guide to premium guest experiences</div>
-      <h1>Build your guidebook<br>in one <em>conversation</em></h1>
-      <p>No form. No wizard. Chat with your AI guide and watch your guidebook take shape live.</p>
+    <div class="chat-agent-bar">
+      <div class="cag-av">A</div>
+      <div class="cag-info">
+        <span class="cag-name">Anna</span>
+        <span class="cag-role">AI Guidebook Assistant · Touch Stay</span>
+      </div>
+      <div class="cag-status"><span class="ai-dot"></span> Online</div>
     </div>
     <div class="msgs" id="msgs"></div>
     <div class="inp-wrap">
@@ -205,14 +218,9 @@
       </div>
     </div>
 
-    <div class="stats-row" id="stats-row" style="display:none">
-      <div class="stat" id="st-a"><div class="stat-n" id="stat-pct">73%</div><div class="stat-l">fewer guest messages</div></div>
-      <div class="stat" id="st-b"><div class="stat-n">4.9★</div><div class="stat-l">avg. host review score</div></div>
-    </div>
-
-    <div class="demo-cta" id="demo-cta">or <a href="#">book a demo</a> with the team</div>
-  </div>
-</div>
+  </div><!-- /preview -->
+  </div><!-- /interactive -->
+</div><!-- /wrap -->
 
 <!-- ═══════════════════════════════════════════════════
      IN-APP EXPERIENCE  (shown after sign-up)
