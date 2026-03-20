@@ -1,5 +1,63 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── PIN GATE ─────────────────────────────────────────────────────────── */
+.pin-gate {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--firefly);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .35s ease, visibility .35s ease;
+}
+.pin-gate.unlocked { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.pin-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 300px; padding: 40px 32px 32px;
+  background: var(--navy); border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.5);
+}
+.pin-logo { margin-bottom: 4px; }
+.pin-title { font-family: Figtree, sans-serif; font-weight: 700; font-size: 22px; color: #fff; }
+.pin-sub   { font-size: 13px; color: var(--slate); margin-bottom: 12px; }
+
+.pin-dots  { display: flex; gap: 12px; margin-bottom: 20px; }
+.pin-dots span {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.3);
+  background: transparent;
+  transition: background .15s, border-color .15s;
+}
+.pin-dots span.filled { background: var(--teal); border-color: var(--teal); }
+
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%;
+}
+.pin-btn {
+  height: 60px; border-radius: 12px; border: none; cursor: pointer;
+  font-family: Figtree, sans-serif; font-size: 22px; font-weight: 500;
+  background: rgba(255,255,255,.07); color: #fff;
+  transition: background .12s, transform .08s;
+}
+.pin-btn:hover  { background: rgba(255,255,255,.13); }
+.pin-btn:active { background: var(--teal); color: var(--navy); transform: scale(.94); }
+.pin-btn-del    { font-size: 18px; }
+.pin-btn-empty  { background: transparent !important; cursor: default; }
+
+.pin-error {
+  min-height: 18px; font-size: 12px; color: #ff6b6b;
+  text-align: center; margin-top: 4px;
+  opacity: 0; transition: opacity .2s;
+}
+.pin-error.show { opacity: 1; }
+
+@keyframes pin-shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-8px); }
+  40%      { transform: translateX(8px); }
+  60%      { transform: translateX(-6px); }
+  80%      { transform: translateX(6px); }
+}
+.pin-gate.shake .pin-card { animation: pin-shake .4s ease; }
+
 :root {
   --teal:       #3ED9CC;
   --teal-d:     #2cbfb3;

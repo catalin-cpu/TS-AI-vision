@@ -1,3 +1,60 @@
+// ─── PIN GATE ─────────────────────────────────────────────────────────────
+const PIN_CORRECT = '1608';
+let pinBuffer = '';
+
+function pinPress(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 4) {
+    if (pinBuffer === PIN_CORRECT) {
+      document.getElementById('pin-gate').classList.add('unlocked');
+      sessionStorage.setItem('ts_unlocked', '1');
+    } else {
+      const errEl = document.getElementById('pin-error');
+      errEl.textContent = 'Incorrect PIN — try again';
+      errEl.classList.add('show');
+      document.getElementById('pin-gate').classList.add('shake');
+      setTimeout(() => {
+        pinBuffer = '';
+        updatePinDots();
+        errEl.classList.remove('show');
+        document.getElementById('pin-gate').classList.remove('shake');
+      }, 800);
+    }
+  }
+}
+
+function pinDel() {
+  if (!pinBuffer.length) return;
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+  document.getElementById('pin-error').classList.remove('show');
+}
+
+function updatePinDots() {
+  const dots = document.querySelectorAll('#pin-dots span');
+  dots.forEach((d, i) => d.classList.toggle('filled', i < pinBuffer.length));
+}
+
+// Auto-unlock if already authenticated this session
+document.addEventListener('DOMContentLoaded', () => {
+  if (sessionStorage.getItem('ts_unlocked') === '1') {
+    const gate = document.getElementById('pin-gate');
+    if (gate) gate.classList.add('unlocked');
+  }
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    const gate = document.getElementById('pin-gate');
+    if (!gate || gate.classList.contains('unlocked')) return;
+    if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+    if (e.key === 'Backspace') pinDel();
+  });
+});
+
+window.pinPress = pinPress;
+window.pinDel   = pinDel;
+
 // ─── HELPERS ──────────────────────────────────────────────────────────────
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -285,33 +342,27 @@ function doAddMore(input) {
 }
 
 // ─── SIMULATED AIRBNB / BOOKING SCRAPE ────────────────────────────────────
-const FAKE_LISTINGS = {
-  airbnb: {
-    propertyName: 'Casa dei Limoni',
-    propertyType: 'villa',
-    location:     'Positano, Amalfi Coast',
-    hostName:     'Elena & Marco',
-    rating: '4.96', reviews: '143 reviews',
-    checkinTime: '4:00 PM', checkoutTime: '10:00 AM',
-    sections: {
-      'About the Home': ['Sleeps 6 · 3 bedrooms · 2 bathrooms', 'Private pool heated May–October', 'Espresso machine & fully equipped kitchen', 'High-speed WiFi throughout'],
-      'House Rules':    ['No smoking indoors', 'No parties or events', 'Pets welcome with prior agreement', 'Quiet hours 11pm–8am'],
-      'Local Tips':     ['Da Adolfo beach restaurant — accessible by boat, worth every bit', 'Take the Path of the Gods for unforgettable views', 'Pick up limoncello direct from the hillside farm'],
-    }
-  },
-  booking: {
-    propertyName: 'Le Petit Mas',
-    propertyType: 'cottage',
-    location:     'Gordes, Provence',
-    hostName:     'Sophie & Jean',
-    rating: '9.4', reviews: '89 reviews',
-    checkinTime: '3:00 PM', checkoutTime: '11:00 AM',
-    sections: {
-      'About the Home': ['Sleeps 4 · 2 bedrooms · 1 bathroom', 'Heated pool June–September', 'Provençal kitchen with pizza oven', 'WiFi available throughout'],
-      'House Rules':    ['No smoking', 'Children welcome', 'Quiet after 10pm', 'Please respect the garden'],
-      'Local Tips':     ['Tuesday market in Gordes — arrive early for the best produce', 'Abbaye de Sénanque lavender fields (peak: July)', 'Dinner at Le Mas Tourteron — book well in advance'],
-    }
+// Both platforms resolve to Villa Azura — the canonical demo property
+const VILLA_AZURA_DATA = {
+  propertyName: 'Villa Azura',
+  propertyType: 'villa',
+  location:     'Amalfi Coast, Italy',
+  hostName:     'Marco & Sofia',
+  heroPhoto:    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',
+  checkinTime:  '3:00 PM',
+  checkoutTime: '11:00 AM',
+  sections: {
+    'About the Home':   ['Sleeps 8 · 4 bedrooms · 3 bathrooms', 'Private infinity pool with panoramic coast views', 'Fully equipped kitchen with espresso bar', 'High-speed WiFi throughout'],
+    'House Rules':      ['No smoking indoors', 'No parties or events', 'Pets welcome with prior agreement', 'Quiet hours 11 pm – 8 am'],
+    'Wi-Fi & Internet': ['Network: VillaAzura_Guest', 'Password: amalfi2024', 'Speed: 300 Mbps fibre'],
+    'Local Tips':       ['Da Adolfo beach restaurant — accessible by boat, unmissable', 'Take the Path of the Gods for panoramic views', 'Pick up limoncello direct from the hillside farm'],
+    'Parking':          ['Private driveway for 2 cars', 'Additional street parking on Via Cristoforo Colombo'],
   }
+};
+
+const FAKE_LISTINGS = {
+  airbnb:  { ...VILLA_AZURA_DATA, rating: '4.97', reviews: '218 reviews' },
+  booking: { ...VILLA_AZURA_DATA, rating: '9.8',  reviews: '142 reviews' },
 };
 
 function doScrapeComplete(platform) {
@@ -342,8 +393,9 @@ Want to <strong>add more details</strong> (WiFi, rules, tips) or <strong>create 
   addMsg('a', html);
   updateCoverText();
 
-  // Update hero photo
-  const src = HERO_IMGS[data.propertyType] || HERO_IMGS.villa;
+  // Update hero photo — prefer explicit heroPhoto, fall back to type mapping
+  const src = data.heroPhoto || HERO_IMGS[data.propertyType] || HERO_IMGS.villa;
+  guidebook.heroPhoto = src;
   const photo = document.getElementById('hero-photo');
   const img = new Image();
   img.onload = () => { photo.style.backgroundImage = `url('${src}')`; photo.classList.add('loaded'); };

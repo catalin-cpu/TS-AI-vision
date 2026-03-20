@@ -11,6 +11,35 @@
 </head>
 <body>
 
+<!-- ── PIN GATE ───────────────────────────────────────────────────────── -->
+<div class="pin-gate" id="pin-gate">
+  <div class="pin-card">
+    <div class="pin-logo">
+      <svg viewBox="0 0 24 24" fill="none" width="32" height="32"><path d="M12 2L2 8v14h7v-7h6v7h7V8L12 2z" fill="#3ED9CC"/></svg>
+    </div>
+    <div class="pin-title">Touch Stay</div>
+    <div class="pin-sub">Prototype access</div>
+    <div class="pin-dots" id="pin-dots">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn pin-btn-empty"></button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn pin-btn-del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
 <nav>
   <a class="logo" href="#">
     <div class="logo-icon">
@@ -88,7 +117,7 @@
         <!-- COVER — matches guide.touchstay.com design -->
         <div class="gb-cover" id="st-cover">
           <div class="gb-hero">
-            <div class="gb-hero-photo" id="hero-photo"></div>
+            <div class="gb-hero-photo loaded" id="hero-photo" style="background-image:url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80')"></div>
             <div class="gb-hero-overlay"></div>
             <!-- Globe / language icon top-right -->
             <div class="gb-globe">
