@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Touch Stay — Anna</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
@@ -13,46 +14,42 @@
 <nav>
   <a class="logo" href="#">
     <div class="logo-icon">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L3 9v12h6v-6h6v6h6V9L12 3z" fill="var(--teal)"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2L2 8v14h7v-7h6v7h7V8L12 2z" fill="var(--teal)"/></svg>
     </div>
     Touch Stay
   </a>
   <div class="nav-r">
-    <a href="#">Guidebooks</a><a href="#">Features</a><a href="#">Demo</a>
-    <a href="#">Pricing</a><a href="#">Integrations</a><a href="#">Resources</a>
+    <a href="#" class="nav-link">Guidebooks <svg class="nav-chevron" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></a>
+    <a href="#" class="nav-link">Features <svg class="nav-chevron" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></a>
+    <a href="#" class="nav-link">Demo <svg class="nav-chevron" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></a>
+    <a href="#" class="nav-link">Pricing</a>
+    <a href="#" class="nav-link">Integrations</a>
+    <a href="#" class="nav-link">Resources <svg class="nav-chevron" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></a>
     <button class="btn-login">Login</button>
+    <button class="btn-trial">Free trial</button>
   </div>
 </nav>
 
-<!-- API KEY BANNER (dev only — hidden in production) -->
-<div id="api-banner">
-  <label>🔑 API key:</label>
-  <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off">
-  <button id="api-save" onclick="saveKey()">Connect Anna</button>
-</div>
-<div id="api-confirmed">
-  <span class="ai-dot"></span> Anna is connected · powered by Claude
-</div>
 
 <div class="wrap">
 
   <!-- CHAT -->
   <div class="chat">
     <div class="chat-top">
-      <div class="pill"><span class="pill-dot"></span>Anna · AI guidebook assistant</div>
-      <h1>A guidebook your guests<br>will <em>actually</em> love</h1>
-      <p>No form. No wizard. One conversation — and a live preview.</p>
+      <div class="pill"><span class="pill-dot"></span>Your guide to premium guest experiences</div>
+      <h1>Build your guidebook<br>in one <em>conversation</em></h1>
+      <p>No form. No wizard. Chat with your AI guide and watch your guidebook take shape live.</p>
     </div>
     <div class="msgs" id="msgs"></div>
     <div class="inp-wrap">
       <div class="inp-row">
-        <textarea id="inp" rows="1" placeholder="Tell Anna about your property…" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+        <textarea id="inp" rows="1" placeholder="Tell us about your property…" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
         <button class="send" onclick="send()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
       <div class="ai-status" id="ai-status">
-        <span class="ai-dot"></span> Anna is AI-powered · Enter your API key above to activate
+        <span class="ai-dot"></span> Your guide to premium guest experiences · powered by Touch Stay AI
       </div>
     </div>
   </div>
@@ -71,7 +68,7 @@
         </div>
 
         <div class="gb-skel" id="st-skel">
-          <div style="height:255px;background:linear-gradient(170deg,#2d5a3d,#1a3a52);position:relative;overflow:hidden">
+          <div style="flex:1;background:linear-gradient(170deg,#2d5a3d,#1a3a52);position:relative;overflow:hidden">
             <div style="position:absolute;bottom:16px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 14px">
               <div class="sk" style="width:46px;height:46px;border-radius:50%"></div>
               <div class="sk" style="width:130px;height:10px"></div>
@@ -80,7 +77,7 @@
               <div class="sk" style="width:86px;height:26px;border-radius:18px;margin-top:4px"></div>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e0e8ed;margin-top:1px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e0e8ed">
             <div class="sk" style="height:76px;border-radius:0"></div>
             <div class="sk" style="height:76px;border-radius:0"></div>
             <div class="sk" style="height:76px;border-radius:0"></div>
@@ -88,23 +85,48 @@
           </div>
         </div>
 
-        <!-- COVER -->
+        <!-- COVER — matches guide.touchstay.com design -->
         <div class="gb-cover" id="st-cover">
           <div class="gb-hero">
             <div class="gb-hero-photo" id="hero-photo"></div>
             <div class="gb-hero-overlay"></div>
+            <!-- Globe / language icon top-right -->
             <div class="gb-globe">
               <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
             </div>
+            <!-- Host info — centred vertically -->
             <div class="gb-host-wrap">
               <div class="gb-host-av" id="host-av">🏡</div>
-              <div class="gb-welcome" id="host-welcome">Your hosts welcome you</div>
-              <div class="gb-propname" id="prop-name">Your Property</div>
+              <div class="gb-greeting" id="host-greeting">Hi, I'm your host, Marco &amp; Sofia 👋</div>
+              <!-- Contact icon row: phone · message · whatsapp -->
+              <div class="gb-contact-row">
+                <div class="gb-contact-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+                </div>
+                <div class="gb-contact-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </div>
+                <div class="gb-contact-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                </div>
+              </div>
+              <div class="gb-propname" id="prop-name">Villa Azura</div>
               <div class="gb-addr">
-                <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span id="prop-addr">Your address</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span id="prop-addr">Amalfi Coast, Italy</span>
               </div>
               <button class="gb-started" onclick="showGrid()">GET STARTED</button>
+            </div>
+            <!-- Check-in / out bar -->
+            <div class="gb-checkin-bar">
+              <div class="gb-checkin-col">
+                <div class="gb-checkin-lbl">Check-in after</div>
+                <div class="gb-checkin-val" id="checkin-val">3:00 PM</div>
+              </div>
+              <div class="gb-checkin-col">
+                <div class="gb-checkin-lbl">Check-out before</div>
+                <div class="gb-checkin-val" id="checkout-val">11:00 AM</div>
+              </div>
             </div>
           </div>
           <div class="gb-nav">
@@ -158,14 +180,211 @@
       <div class="stat" id="st-a"><div class="stat-n" id="stat-pct">73%</div><div class="stat-l">fewer guest messages</div></div>
       <div class="stat" id="st-b"><div class="stat-n">4.9★</div><div class="stat-l">avg. host review score</div></div>
     </div>
-    <div class="g3" id="g3-box">
-      <h3>Your guidebook is ready</h3>
-      <p>Save it and get a shareable link to send guests before they arrive.</p>
-      <input type="email" placeholder="your@email.com" id="g3-email">
-      <button onclick="doG3()">Save my guidebook →</button>
-      <div class="g3-note">20 seconds · no credit card needed</div>
-    </div>
+
     <div class="demo-cta" id="demo-cta">or <a href="#">book a demo</a> with the team</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     IN-APP EXPERIENCE  (shown after sign-up)
+════════════════════════════════════════════════════ -->
+<div class="app-wrap" id="app-wrap">
+
+  <!-- APP HEADER -->
+  <div class="app-hdr">
+    <div class="app-hdr-l">
+      <div class="app-logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2L2 8v14h7v-7h6v7h7V8L12 2z" fill="var(--teal)"/></svg>
+      </div>
+      <div class="app-project-info">
+        <span class="app-project-lbl">You are working on:</span>
+        <div class="app-project-sel">
+          <div class="app-proj-thumb" id="app-proj-thumb">🏡</div>
+          <span class="app-proj-name" id="app-proj-name">Your Guidebook</span>
+          <svg viewBox="0 0 10 6" fill="none" width="10" height="6"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="app-hdr-r">
+      <button class="app-new-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Create new guidebook
+      </button>
+      <div class="app-user-av" id="app-user-av">?</div>
+    </div>
+  </div>
+
+  <!-- APP BODY -->
+  <div class="app-body">
+
+    <!-- LEFT: AI chat panel -->
+    <div class="app-chat-panel">
+
+      <!-- Meet your virtual team -->
+      <div class="app-agents-bar">
+        <div class="app-agents-title">Meet your virtual team!</div>
+        <div class="app-agents-row">
+          <div class="app-agent on" id="agent-anna" onclick="selectAgent('anna')">
+            <div class="app-agent-av" style="background:#3ED9CC">A</div>
+            <div class="app-agent-info">
+              <div class="app-agent-name">Anna</div>
+              <div class="app-agent-role">General assistant</div>
+            </div>
+            <div class="app-agent-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+          </div>
+          <div class="app-agent" id="agent-alex" onclick="selectAgent('alex')">
+            <div class="app-agent-av" style="background:#5B8DEF">Al</div>
+            <div class="app-agent-info">
+              <div class="app-agent-name">Alex</div>
+              <div class="app-agent-role">Front Desk Agent</div>
+            </div>
+            <div class="app-agent-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6z"/></svg>
+            </div>
+          </div>
+          <div class="app-agent" id="agent-taylor" onclick="selectAgent('taylor')">
+            <div class="app-agent-av" style="background:#F59E42">T</div>
+            <div class="app-agent-info">
+              <div class="app-agent-name">Taylor</div>
+              <div class="app-agent-role">Integration IT support</div>
+            </div>
+            <div class="app-agent-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+            </div>
+          </div>
+          <div class="app-agent" id="agent-sam" onclick="selectAgent('sam')">
+            <div class="app-agent-av" style="background:#9B59B6">S</div>
+            <div class="app-agent-info">
+              <div class="app-agent-name">Sam</div>
+              <div class="app-agent-role">Store Salesman</div>
+            </div>
+            <div class="app-agent-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="app-msgs" id="app-msgs"></div>
+
+      <!-- Input -->
+      <div class="app-inp-wrap">
+        <div class="app-inp-row">
+          <textarea id="app-inp" rows="1" placeholder="Ask me anything!" onkeydown="appKey(event)" oninput="resize(this)"></textarea>
+          <button class="send" onclick="appSend()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <div class="app-footer-row">
+          Want to explore by yourself?
+          <span class="app-switch" onclick="switchToAdvanced()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+            Switch to advanced mode
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Phone preview panel -->
+    <div class="app-preview-panel">
+      <div class="phone app-phone">
+        <div class="phone-notch"></div>
+        <div class="screen" id="app-screen">
+          <div class="gb-cover on" id="app-st-cover">
+            <div class="gb-hero">
+              <div class="gb-hero-photo" id="app-hero-photo"></div>
+              <div class="gb-hero-overlay"></div>
+              <div class="gb-globe">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+              </div>
+              <div class="gb-host-wrap">
+                <div class="gb-host-av">🏡</div>
+                <div class="gb-greeting" id="app-greeting">Hi, I'm your host 👋</div>
+                <div class="gb-propname" id="app-prop-name">Your Property</div>
+                <div class="gb-addr">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <span id="app-prop-addr">Your location</span>
+                </div>
+                <button class="gb-started" onclick="appShowGrid()">GET STARTED</button>
+              </div>
+              <div class="gb-checkin-bar">
+                <div class="gb-checkin-col">
+                  <div class="gb-checkin-lbl">Check-in after</div>
+                  <div class="gb-checkin-val">3:00 PM</div>
+                </div>
+                <div class="gb-checkin-col">
+                  <div class="gb-checkin-lbl">Check-out before</div>
+                  <div class="gb-checkin-val">11:00 AM</div>
+                </div>
+              </div>
+            </div>
+            <div class="gb-nav">
+              <div class="gb-nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</div>
+              <div class="gb-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Info</div>
+              <div class="gb-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Map</div>
+              <div class="gb-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</div>
+            </div>
+          </div>
+          <div class="gb-grid-view" id="app-st-grid">
+            <div class="gb-topbar">
+              <div class="gb-topbar-host">🏡</div>
+              <div class="gb-topbar-icons">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              </div>
+            </div>
+            <div class="gb-grid" id="app-gb-grid"></div>
+            <div class="gb-nav">
+              <div class="gb-nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</div>
+              <div class="gb-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>Info</div>
+              <div class="gb-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Map</div>
+              <div class="gb-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Action buttons below phone -->
+      <div class="app-phone-actions">
+        <button class="app-action-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          Quick share
+        </button>
+        <button class="app-action-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open in new tab
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOPIC EDITOR OVERLAY -->
+<div class="topic-editor" id="topic-editor">
+  <div class="topic-editor-inner">
+    <div class="te-header">
+      <div class="te-title" id="te-title">Edit topic</div>
+      <button class="te-close" onclick="closeTopicEditor()">✕</button>
+    </div>
+    <div class="te-field">
+      <label class="te-label">Title</label>
+      <input type="text" class="te-input" id="te-title-inp" placeholder="Topic title">
+    </div>
+    <div class="te-field">
+      <label class="te-label">Content</label>
+      <textarea class="te-textarea" id="te-content" rows="6" placeholder="Add your content here..."></textarea>
+    </div>
+    <div class="te-actions">
+      <button class="te-cancel" onclick="closeTopicEditor()">Cancel</button>
+      <button class="te-save" onclick="saveTopicEditor()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+        Save
+      </button>
+    </div>
   </div>
 </div>
 
