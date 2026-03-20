@@ -64,9 +64,9 @@
 
   <!-- HERO HEAD -->
   <div class="hero-head">
-    <div class="pill"><span class="pill-dot"></span>AI-powered guidebook builder</div>
-    <h1>Build a guidebook<br>your guests will <em>love</em></h1>
-    <p>No forms. No uploads. Just chat — and watch your digital guidebook come to life in minutes.</p>
+    <div class="pill"><span class="pill-dot"></span>AI-powered guest experience platform</div>
+    <h1>Give every guest<br>an <em>amazing</em> experience</h1>
+    <p>Automate communication, reduce questions, increase revenue — and give guests everything they need before they arrive.</p>
   </div>
 
   <!-- INTERACTIVE ROW -->
@@ -75,12 +75,11 @@
   <!-- CHAT -->
   <div class="chat">
     <div class="chat-agent-bar">
-      <div class="cag-av">A</div>
+      <div class="cag-dot" style="background:var(--teal)"></div>
       <div class="cag-info">
-        <span class="cag-name">Anna</span>
-        <span class="cag-role">AI Guidebook Assistant · Touch Stay</span>
+        <span class="cag-role">AI Guest Experience Builder</span>
+        <span class="cag-sub">Touch Stay</span>
       </div>
-      <div class="cag-status"><span class="ai-dot"></span> Online</div>
     </div>
     <div class="msgs" id="msgs"></div>
     <div class="inp-wrap">
@@ -257,36 +256,31 @@
     <!-- LEFT: AI chat panel -->
     <div class="app-chat-panel">
 
-      <!-- Meet your virtual team -->
+      <!-- Agent selector -->
       <div class="app-agents-bar">
-        <div class="app-agents-title">Meet your virtual team!</div>
         <div class="app-agents-row">
-          <div class="app-agent on" id="agent-anna" onclick="selectAgent('anna')">
-            <div class="app-agent-av" style="background:#3ED9CC">A</div>
+          <div class="app-agent on" id="agent-anna" onclick="selectAgent('anna')" data-agent="anna">
+            <div class="app-agent-dot" style="background:#3ED9CC"></div>
             <div class="app-agent-info">
-              <div class="app-agent-name">Anna</div>
-              <div class="app-agent-role">General assistant</div>
+              <div class="app-agent-fn">Guidebook Setup</div>
             </div>
           </div>
-          <div class="app-agent" id="agent-alex" onclick="selectAgent('alex')">
-            <div class="app-agent-av" style="background:#5B8DEF">Al</div>
+          <div class="app-agent" id="agent-alex" onclick="selectAgent('alex')" data-agent="alex">
+            <div class="app-agent-dot" style="background:#5B8DEF"></div>
             <div class="app-agent-info">
-              <div class="app-agent-name">Alex</div>
-              <div class="app-agent-role">Front Desk Agent</div>
+              <div class="app-agent-fn">Guest Comms</div>
             </div>
           </div>
-          <div class="app-agent" id="agent-taylor" onclick="selectAgent('taylor')">
-            <div class="app-agent-av" style="background:#F59E42">T</div>
+          <div class="app-agent" id="agent-taylor" onclick="selectAgent('taylor')" data-agent="taylor">
+            <div class="app-agent-dot" style="background:#F59E42"></div>
             <div class="app-agent-info">
-              <div class="app-agent-name">Taylor</div>
-              <div class="app-agent-role">Integration IT support</div>
+              <div class="app-agent-fn">Integrations</div>
             </div>
           </div>
-          <div class="app-agent" id="agent-sam" onclick="selectAgent('sam')">
-            <div class="app-agent-av" style="background:#9B59B6">S</div>
+          <div class="app-agent" id="agent-sam" onclick="selectAgent('sam')" data-agent="sam">
+            <div class="app-agent-dot" style="background:#9B59B6"></div>
             <div class="app-agent-info">
-              <div class="app-agent-name">Sam</div>
-              <div class="app-agent-role">Store Salesman</div>
+              <div class="app-agent-fn">Revenue & Store</div>
             </div>
           </div>
         </div>

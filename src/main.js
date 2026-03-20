@@ -711,29 +711,109 @@ let inactivityTimer = null;
 const USE_AI = typeof location !== 'undefined' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
 
 const AGENT_PROMPTS = {
-  anna: `You are Anna, an AI Guidebook Assistant at Touch Stay. You help property hosts build beautiful digital guidebooks. You are warm, helpful, and efficient. You know about vacation rentals, Airbnb, Booking.com, property management. You guide users through: check-in/out times, cover photos, arrival info, WiFi details, local recommendations. Keep responses concise (2-3 sentences max). Use emoji sparingly. When the guidebook is complete, encourage sharing and suggest the AI chatbot (Alex) for reducing guest questions or Guest Store (Sam) for increasing revenue.`,
+  anna: `You are Anna, an AI Guest Experience assistant at Touch Stay. You help property hosts create the best possible guest experience — from a shareable digital guidebook to automated communication and revenue tools.
 
-  alex: `You are Alex, the Front Desk Agent at Touch Stay. You help hosts set up AI-powered guest communication: connecting booking channels (Airbnb, Booking.com, Vrbo), PMS integrations (Guesty, Hostaway, Lodgify), and automated message templates. You're technical but approachable. Keep responses concise (2-3 sentences). When done, suggest the Guest Store (Sam) for revenue.`,
+Personality: Warm, helpful, efficient. You make the process feel easy and exciting. The value you communicate is NOT just "a beautiful guidebook" — it's helping hosts provide an amazing guest experience while saving them time and earning more.
 
-  taylor: `You are Taylor, the IT & Integrations specialist at Touch Stay. You help with PMS connections, smart lock integrations (Yale, August, Nuki, Schlage), noise monitor setup (Minut, NoiseAware), and API configurations. You know REST APIs, webhooks, OAuth flows. You're technical and precise. Keep responses concise (2-3 sentences).`,
+Features you set up:
+- Property details (type, location, check-in/out times)
+- Cover photo, arrival & access instructions, WiFi credentials
+- Local recommendations & tips
+- Shareable guidebook link — guests have everything they need before arrival
+- "Leave a Review" feature — routes 1-3 star reviews privately to the host (protecting them), sends 4-5 star guests to Google Places or TripAdvisor
 
-  sam: `You are Sam, the Store & Upsells specialist at Touch Stay. You help hosts set up a Guest Store to increase per-stay revenue through services like early check-in, late check-out, welcome hampers, bike hire, wine on arrival, and local experiences. You know pricing benchmarks: early/late check-in £20-40, hampers £30-60, bike hire £15-30/day. Keep responses concise (2-3 sentences).`
+Problems you solve for hosts:
+- Guests arriving confused without key information
+- Hours spent answering the same questions
+- Bad reviews going public before the host can address them
+- No structured way to deliver the guest experience
+
+After the guidebook is set up, celebrate and explain what else Touch Stay can do — nudge toward Alex (automate guest communication, reduce messages by 90%) or Sam (earn an extra £80-150 per booking with Guest Store). Frame everything around the guest experience, not just the guidebook.
+
+Keep responses concise (2-3 sentences max). Use emoji sparingly. Be conversational, not robotic.`,
+
+  alex: `You are Alex, the Front Desk Agent at Touch Stay. You automate guest communication so hosts never answer the same question twice.
+
+Personality: Technical but approachable. You make complex automations feel simple.
+
+Features you set up:
+1. Booking channel connection — sync Airbnb, Booking.com, Vrbo, direct bookings so guest data flows automatically
+2. PMS integration — Guesty, Hostaway, Lodgify, Smoobu for centralised management
+3. Automated message schedules — pre-written SMS/email templates on schedules (booking confirmation, pre-arrival 3 days before, check-in morning, mid-stay day 2, post-stay review request). Host can edit templates but Touch Stay pre-defines them. These are NOT the same as the AI chatbot.
+4. AI Guest Chatbot — lives inside the guidebook, guests ask it anything 24/7 and it answers from guidebook content. Separate feature from automated messages.
+5. Contact collection — capture guest details for compliance, guest registration, and potential direct rebookings
+6. Campaigns — promote specific guidebook topics (local recommendations, key events) via banners shown to guests
+
+Problems you solve:
+- Same 10 questions from every guest
+- Answering WhatsApp messages at midnight
+- Not collecting guest contacts for direct rebooking
+- Guests missing the best local tips in the guidebook
+
+Keep responses concise (2-3 sentences max). Be conversational.`,
+
+  taylor: `You are Taylor, the IT & Integrations specialist at Touch Stay. You connect the host's tech stack and automate the guest experience from booking to checkout.
+
+Personality: Technical and precise, but patient and clear.
+
+Features you handle:
+- PMS integrations — deep config, field mapping, sync bookings to Touch Stay
+- OTA integrations — sync bookings to automated invitations with key info + guidebook link
+- Viator integration — source local experiences automatically for the guidebook
+- Booking-triggered automations — when a booking happens, automatically start the guest experience (messages, guidebook access, invitations)
+
+Problems you solve:
+- PMS and booking platforms not syncing with Touch Stay
+- Manually sending guidebook links after every booking
+- Wanting local experiences in the guidebook without time to curate them
+- Guest experience not starting automatically when a booking comes in
+
+Keep responses concise (2-3 sentences). Be technical but clear.`,
+
+  sam: `You are Sam, the Store & Upsells specialist at Touch Stay. You help hosts earn more from every stay with zero extra effort.
+
+Personality: Enthusiastic about revenue. You make upselling feel natural, not salesy.
+
+Features you set up:
+- Guest Store with upsell services: early check-in/late check-out (£20-40), welcome hampers (£30-60), bike hire (£15-30/day), wine on arrival (£20-35), local experiences/tours (£30-80), airport transfers (£40-80)
+- Stripe integration — collect payments automatically, no manual invoicing
+- Campaigns — banners in the guidebook promoting products/services to guests
+- Pricing based on location benchmarks
+- Services appear on the guidebook welcome screen — guests browse and purchase before arrival
+
+Problems you solve:
+- Leaving money on the table — guests would pay for extras but host never offers
+- Collecting payments being awkward and manual
+- Not knowing what to charge or what guests want in their area
+
+Keep responses concise (2-3 sentences). Be conversational.`
 };
 
 let agentHistory = { anna: [], alex: [], taylor: [], sam: [] };
 
-async function callAgent(agentId, userMessage) {
+/**
+ * Call Claude via the /api/chat proxy.
+ * @param {string} agentId - Which agent persona
+ * @param {string} userMessage - What the user said
+ * @param {string|null} hint - Optional instruction for this specific step
+ *        e.g. "Confirm their check-in/out times and ask about cover photo."
+ *        Gives Claude direction while letting it phrase things naturally.
+ */
+async function callAgent(agentId, userMessage, hint = null) {
   if (!USE_AI) return null;
   const history = agentHistory[agentId];
   history.push({ role: 'user', content: userMessage });
 
-  const context = `\n\nCurrent guidebook state: ${JSON.stringify({
+  const gbContext = JSON.stringify({
     propertyName: guidebook.propertyName,
     location: guidebook.location || guidebook.propAddr,
     propertyType: guidebook.propertyType,
-    hostName: guidebook.hostName,
-    currentState: appConvState
-  })}`;
+    hostName: guidebook.hostName
+  });
+
+  let systemPrompt = AGENT_PROMPTS[agentId]
+    + `\n\nCurrent guidebook: ${gbContext}`;
+  if (hint) systemPrompt += `\n\nIMPORTANT — your next response MUST: ${hint}`;
 
   try {
     const res = await fetch('/api/chat', {
@@ -741,8 +821,8 @@ async function callAgent(agentId, userMessage) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 300,
-        system: AGENT_PROMPTS[agentId] + context,
+        max_tokens: 250,
+        system: systemPrompt,
         messages: history.slice(-10)
       })
     });
@@ -753,7 +833,7 @@ async function callAgent(agentId, userMessage) {
     return reply;
   } catch (e) {
     history.pop();
-    return null; // fallback to simulation
+    return null;
   }
 }
 
@@ -804,14 +884,27 @@ function buildTopicCard(title, text, img) {
   </div>`;
 }
 
+const AGENT_LABELS = { anna: 'Guidebook Setup', alex: 'Guest Comms', taylor: 'Integrations', sam: 'Revenue & Store' };
+let lastAgentInChat = null;
+
 function appAddMsg(who, html) {
   const AMSGS = document.getElementById('app-msgs');
   if (!AMSGS) return;
   const agent = APP_AGENTS[activeAgent] || APP_AGENTS.anna;
+
+  // Show role-label divider when agent switches
+  if (who === 'a' && activeAgent !== lastAgentInChat) {
+    lastAgentInChat = activeAgent;
+    const divider = document.createElement('div');
+    divider.className = 'agent-divider';
+    divider.innerHTML = `<div class="agent-divider-dot" style="background:${agent.color}"></div><span class="agent-divider-label">${AGENT_LABELS[activeAgent] || activeAgent}</span><div class="agent-divider-line"></div>`;
+    AMSGS.appendChild(divider);
+  }
+
   const d = document.createElement('div');
-  d.className = 'm ' + who;
+  d.className = 'm ' + who + (who === 'a' ? ` agent-${activeAgent}` : '');
   if (who === 'a') {
-    d.innerHTML = `<div class="av" style="background:${agent.color};color:#fff">${agent.emoji}</div><div class="bub">${html}</div>`;
+    d.innerHTML = `<div class="bub">${html}</div>`;
   } else {
     d.innerHTML = `<div class="bub">${html}</div>`;
   }
@@ -847,9 +940,10 @@ function resetInactivity() {
   clearTimeout(inactivityTimer);
   // Only nudge when guidebook is complete and we haven't already prompted
   if (appConvState === 'GUIDEBOOK_DONE' || appConvState === 'UPSELL') {
-    inactivityTimer = setTimeout(() => {
+    inactivityTimer = setTimeout(async () => {
       appConvState = 'IDLE_REVIEW';
-      appAddMsg('a', `One more thing while you're here — I can protect your review scores 🌟<br><br>Touch Stay routes <strong>1–3 star feedback</strong> privately to you, and sends <strong>4–5 star guests</strong> straight to Google or TripAdvisor. So only great reviews go public. Want to activate it?`);
+      const aiNudge = await callAgent('anna', '(User has been idle)', `Nudge the user about the Leave a Review feature. Explain: it protects their review scores by routing 1-3 star feedback privately to them in Touch Stay (so they can address issues before they go public), while 4-5 star guests get directed to Google Places or TripAdvisor. Ask if they want to activate it. Be gentle and helpful. 2-3 sentences.`);
+      appAddMsg('a', aiNudge || `One more thing while you're here — <strong>Leave a Review</strong> protects your scores 🌟 1–3 star feedback comes privately to you in Touch Stay so you can address issues. 4–5 star guests get nudged to leave reviews on Google Places or TripAdvisor. Want to activate it?`);
       appAddQRs(['Yes, activate it', 'Maybe later']);
     }, 5000);
   }
@@ -881,11 +975,9 @@ async function simulateAppResponse(input) {
   switch (appConvState) {
 
     case 'GUIDEBOOK_CHECKIN': {
-      // Parse times from input
       const times = input.match(/\d+(?::\d+)?\s*(?:am|pm)/gi) || [];
       appData.checkin  = times[0] || input.split(/[\/,\-]/)[0]?.trim() || '3:00 PM';
       appData.checkout = times[1] || input.split(/[\/,\-]/)[1]?.trim() || '11:00 AM';
-      // Update phone preview
       const ciEl = document.getElementById('app-st-cover')?.querySelector('.gb-checkin-val');
       const coEl = document.getElementById('app-st-cover')?.querySelectorAll('.gb-checkin-val')[1];
       if (ciEl) ciEl.textContent = appData.checkin;
@@ -893,28 +985,30 @@ async function simulateAppResponse(input) {
       appConvState = 'GUIDEBOOK_COVER';
       const propType = guidebook.propertyType || 'villa';
       const suggestedPhoto = COVER_PHOTOS[propType] || COVER_PHOTOS.villa;
-      // Pre-set a cover photo
       appData.coverPhoto = suggestedPhoto;
       const heroEl = document.getElementById('app-hero-photo');
       if (heroEl) { heroEl.style.backgroundImage = `url('${suggestedPhoto}')`; heroEl.classList.add('loaded'); }
-      return { text: `Got it — check-in ${appData.checkin}, check-out ${appData.checkout} ✓<br><br>I've added a cover photo based on your property type. <strong>Want to use a different one?</strong> Paste any image URL, or keep this one.`, qrs: ['Keep this photo', 'Use a different photo'] };
+      const ai = await callAgent('anna', input, `Confirm check-in ${appData.checkin} and check-out ${appData.checkout}. Then tell them you added a cover photo based on their ${propType} and ask if they want to keep it or paste a different image URL. 2-3 sentences.`);
+      return { text: ai || `Got it — check-in ${appData.checkin}, check-out ${appData.checkout} ✓<br><br>I've added a cover photo based on your property type. <strong>Want to use a different one?</strong> Paste any image URL, or keep this one.`, qrs: ['Keep this photo', 'Use a different photo'] };
     }
 
     case 'GUIDEBOOK_COVER': {
       if (!low.includes('keep') && !low.includes('this') && input.match(/https?:\/\//)) {
         appData.coverPhoto = input.trim();
-        const heroEl = document.getElementById('app-hero-photo');
-        if (heroEl) { heroEl.style.backgroundImage = `url('${appData.coverPhoto}')`; heroEl.classList.add('loaded'); }
+        const heroEl2 = document.getElementById('app-hero-photo');
+        if (heroEl2) { heroEl2.style.backgroundImage = `url('${appData.coverPhoto}')`; heroEl2.classList.add('loaded'); }
       }
       appConvState = 'GUIDEBOOK_ARRIVAL';
-      return { text: `Looking good! Now — <strong>how do guests get in?</strong> Key lockbox, smart lock, meet & greet?`, qrs: ['Key lockbox', 'Smart lock', 'I meet them in person'] };
+      const ai2 = await callAgent('anna', input, `Acknowledge their cover photo choice. Then ask how guests get in — key lockbox, smart lock code, or do they meet guests in person? 2 sentences.`);
+      return { text: ai2 || `Looking good! Now — <strong>how do guests get in?</strong> Key lockbox, smart lock, meet & greet?`, qrs: ['Key lockbox', 'Smart lock', 'I meet them in person'] };
     }
 
     case 'GUIDEBOOK_ARRIVAL': {
       appData.arrivalInfo = input;
       appAddToGrid('Arrival & Check-in', TOPIC_TEMPLATES.find(t => t.key === 'check')?.img || '');
       appConvState = 'GUIDEBOOK_WIFI';
-      return { text: `Perfect ✓ What's the <strong>WiFi name and password</strong>?`, qrs: ['No WiFi'] };
+      const ai3 = await callAgent('anna', input, `Confirm you've added their arrival info ("${input}") to the guidebook. Then ask for the WiFi network name and password. 2 sentences.`);
+      return { text: ai3 || `Perfect ✓ What's the <strong>WiFi name and password</strong>?`, qrs: ['No WiFi'] };
     }
 
     case 'GUIDEBOOK_WIFI': {
@@ -929,7 +1023,8 @@ async function simulateAppResponse(input) {
         appAddMsg('a', `Added! ${buildTopicCard('Wi-Fi & Internet', wifiText, wifiTmpl?.img || '')}`);
       }
       appConvState = 'GUIDEBOOK_SPOTS';
-      return { text: `Almost done! <strong>Any local favourites?</strong> Restaurants, cafes, hidden gems — I'll add them as recommendations for your guests.`, qrs: ['Skip for now', 'Best local restaurant', 'Add a few'] };
+      const ai4 = await callAgent('anna', input, `${low.includes('no wifi') ? 'Acknowledge no WiFi, no problem.' : 'WiFi is saved.'} Almost done — ask for their favourite local spots: restaurants, cafes, hidden gems to recommend to guests. 2 sentences.`);
+      return { text: ai4 || `Almost done! <strong>Any local favourites?</strong> Restaurants, cafes, hidden gems — I'll add them as recommendations for your guests.`, qrs: ['Skip for now', 'Best local restaurant', 'Add a few'] };
     }
 
     case 'GUIDEBOOK_SPOTS': {
@@ -942,49 +1037,64 @@ async function simulateAppResponse(input) {
       appConvState = 'GUIDEBOOK_DONE';
       appShowGrid();
       const link = appShareLink();
+      const ai5 = await callAgent('anna', input, `The guest experience is set up! Celebrate. Tell them to share this link in every booking confirmation — guests will have everything they need before arrival, reducing questions and giving them an amazing first impression. Then mention two ways to level up: (1) automate guest communication and reduce questions by 90% (Alex can set this up), or (2) earn an extra £80-150 per booking with the Guest Store (Sam). Frame it around guest experience, not just the guidebook. 3-4 sentences max.`);
       return {
-        text: `Your guidebook is ready to share! 🎉<br>${link}<br><br>Drop that link in every booking confirmation and your guests have everything they need before arrival.`,
-        qrs: ['Test it now', 'Next: reduce guest questions', 'Next: increase revenue']
+        text: (ai5 ? ai5 + `<br>${link}` : `Your guest experience is ready! 🎉<br>${link}<br><br>Share that link in every booking confirmation — guests get everything they need before arrival, and you'll see fewer repetitive questions immediately.<br><br>Want to go further? <strong>Alex</strong> can automate your guest communication (reduce questions by 90%), or <strong>Sam</strong> can set up a Guest Store to earn an extra £80-150 per booking.`),
+        qrs: ['Activate Leave a Review', 'Next: automate guest comms', 'Next: increase revenue']
       };
     }
 
     case 'GUIDEBOOK_DONE':
     case 'UPSELL': {
       appConvState = 'UPSELL';
-      if (low.includes('reduce') || low.includes('question') || low.includes('alex') || low.includes('chatbot') || low.includes('automat')) {
+      if (low.includes('reduce') || low.includes('question') || low.includes('alex') || low.includes('chatbot') || low.includes('automat') || low.includes('comms') || low.includes('front desk')) {
         return appHandoffToAlex();
       }
-      if (low.includes('revenue') || low.includes('increase') || low.includes('earn') || low.includes('store') || low.includes('sam')) {
+      if (low.includes('revenue') || low.includes('increase') || low.includes('earn') || low.includes('store') || low.includes('sam') || low.includes('upsell')) {
         return appHandoffToSam();
+      }
+      if (low.includes('review') || low.includes('leave a review') || low.includes('protect')) {
+        appConvState = 'REVIEW_SETUP';
+        const aiReview = await callAgent('anna', input, `Explain the Leave a Review feature: it protects the host from bad public reviews. 1-3 star feedback gets collected privately in Touch Stay so the host can address issues. 4-5 star guests get nudged to leave a review on Google Places or TripAdvisor. Ask if they want to activate it. 2-3 sentences.`);
+        return { text: aiReview || `Great choice! <strong>Leave a Review</strong> protects your reputation — 1-3 star feedback comes privately to you in Touch Stay so you can address it. 4-5 star guests get nudged to Google Places or TripAdvisor. Want to activate it?`, qrs: ['Yes, activate it', 'Maybe later'] };
       }
       if (low.includes('test') || low.includes('preview') || low.includes('link') || low.includes('share')) {
         appShowGrid();
-        return { text: `Preview is live on the right ↗ Tap GET STARTED to test the guest view, or copy the link below:<br>${appShareLink()}`, qrs: ['Reduce guest questions', 'Increase revenue per stay'] };
+        return { text: `Preview is live on the right ↗ Tap GET STARTED to test the guest view, or copy the link below:<br>${appShareLink()}`, qrs: ['Automate guest comms', 'Increase revenue per stay'] };
       }
-      // Try Claude for freeform conversation
+      // Freeform — Claude handles
       const aiReply = await callAgent('anna', input);
-      if (aiReply) return { text: aiReply, qrs: ['Reduce guest questions with AI', 'Increase revenue per stay'] };
-      // Fallback
+      if (aiReply) return { text: aiReply, qrs: ['Automate guest comms', 'Increase revenue per stay', 'Activate Leave a Review'] };
       return {
-        text: `Hosts using Touch Stay reduce repetitive guest questions by <strong>90%</strong> and halve their response time. Want to go further?`,
-        qrs: ['Reduce guest questions with AI', 'Increase revenue per stay']
+        text: `What would you like to do next? I can introduce you to <strong>Alex</strong> to automate guest communication, or <strong>Sam</strong> to set up your Guest Store.`,
+        qrs: ['Automate guest comms', 'Increase revenue per stay', 'Activate Leave a Review']
       };
+    }
+
+    case 'REVIEW_SETUP': {
+      if (low.includes('yes') || low.includes('activ') || low.includes('sure')) {
+        appConvState = 'UPSELL';
+        const aiAct = await callAgent('anna', input, `Confirm Leave a Review is now active. Briefly explain: 1-3 stars go privately to them, 4-5 stars get directed to Google Places or TripAdvisor. Then ask what they want to do next — automate guest comms (Alex) or set up Guest Store (Sam). 2-3 sentences.`);
+        return { text: aiAct || `Done! ✅ Leave a Review is active — 1-3 star feedback comes privately to you, 4-5 star guests get nudged to Google or TripAdvisor. Want to automate guest communication next, or set up your Guest Store?`, qrs: ['Automate guest comms', 'Set up Guest Store'] };
+      }
+      appConvState = 'UPSELL';
+      return { text: `No problem — you can activate it any time. What would you like to work on?`, qrs: ['Automate guest comms', 'Increase revenue per stay'] };
     }
 
     case 'IDLE_REVIEW': {
       if (low.includes('yes') || low.includes('activ') || low.includes('sure')) {
         appConvState = 'UPSELL';
-        return { text: `Done! ✅ The feedback tool is now active. 1–3 star reviews go privately to you; 4–5 stars get a nudge to leave a Google or TripAdvisor review. Want to set up the AI chatbot next, or add a Guest Store?`, qrs: ['Set up AI chatbot', 'Add Guest Store'] };
+        const aiIdle = await callAgent('anna', input, `Confirm Leave a Review is active. 1-3 star reviews go privately to the host in Touch Stay. 4-5 star guests get directed to Google Places or TripAdvisor. Then offer next steps: automate guest comms (Alex) or Guest Store (Sam). 2-3 sentences.`);
+        return { text: aiIdle || `Done! ✅ Leave a Review is active — 1-3 star feedback goes privately to you, 4-5 stars get nudged to Google or TripAdvisor. Want to automate guest comms next, or set up a Guest Store?`, qrs: ['Automate guest comms', 'Set up Guest Store'] };
       }
       appConvState = 'UPSELL';
-      return { text: `No problem! What would you like to work on?`, qrs: ['Reduce guest questions', 'Increase revenue per stay', 'Edit guidebook'] };
+      return { text: `No problem! What would you like to work on?`, qrs: ['Automate guest comms', 'Increase revenue per stay', 'Edit guidebook'] };
     }
 
     default: {
-      // Freeform — try Claude
       const aiDefault = await callAgent('anna', input);
-      if (aiDefault) return { text: aiDefault, qrs: ['Reduce guest questions', 'Increase revenue per stay', 'Edit guidebook'] };
-      return { text: `What would you like to work on?`, qrs: ['Reduce guest questions', 'Increase revenue per stay', 'Edit guidebook'] };
+      if (aiDefault) return { text: aiDefault, qrs: ['Automate guest comms', 'Increase revenue per stay', 'Edit guidebook'] };
+      return { text: `What would you like to work on?`, qrs: ['Automate guest comms', 'Increase revenue per stay', 'Edit guidebook'] };
     }
   }
 }
@@ -996,12 +1106,12 @@ function appHandoffToAlex() {
   const alexEl = document.getElementById('agent-alex');
   if (alexEl) alexEl.classList.add('on');
   appConvState = 'ALEX_CHANNEL';
-  // Show Anna's handoff, then immediately show Alex's first question
-  setTimeout(() => {
-    appAddMsg('a', `Hey! I'm Alex 🛎️ First, let's connect your booking channel so guest data syncs automatically. <strong>Which platform do you use?</strong>`);
+  setTimeout(async () => {
+    const aiIntro = await callAgent('alex', '(User has been handed off to you. Introduce yourself and ask which booking platform they use.)', `Introduce yourself as Alex. You automate guest communication so hosts never answer the same question twice. First step: connect their booking channel. Ask which platform they use — Airbnb, Booking.com, Vrbo, or direct bookings only. 2-3 sentences, be friendly.`);
+    appAddMsg('a', aiIntro || `Hey! I'm Alex 🛎️ I'll automate your guest communication so you never answer the same question twice. First — let's connect your booking channel. <strong>Which platform do you use?</strong>`);
     appAddQRs(['Airbnb', 'Booking.com', 'Vrbo', 'Direct bookings only']);
   }, 600);
-  return { text: `Passing you to <strong>Alex</strong> 🛎️ — he'll get your AI chatbot live and connect your booking system.`, qrs: [] };
+  return { text: `Passing you to <strong>Alex</strong> 🛎️ — he'll automate your guest communication and set up your AI chatbot.`, qrs: [] };
 }
 
 function appHandoffToSam() {
@@ -1011,22 +1121,23 @@ function appHandoffToSam() {
   if (samEl) samEl.classList.add('on');
   appConvState = 'SAM_SERVICES';
   const location = guidebook.propAddr || guidebook.location || 'your area';
-  // Show Anna's handoff, then immediately show Sam's pitch
-  setTimeout(() => {
-    appAddMsg('a', `Hey! I'm Sam 🛍️ Property owners using the Touch Stay Store add an average of <strong>£120 per stay</strong>. Based on ${location}, here are the most popular upsells in your area:
+  setTimeout(async () => {
+    const aiIntro = await callAgent('sam', '(User has been handed off to you. Introduce yourself and show suggested upsell services.)', `Introduce yourself as Sam. You help hosts earn more from every stay with zero effort. Show suggested upsell services for ${location} with prices: Early check-in £30, Late check-out £30, Welcome hamper £45, Bike hire £25/day, Wine on arrival £25, Airport transfer £50. Mention that payments are collected automatically via Stripe. Ask if they want to add all of them, pick specific ones, or adjust prices. Be enthusiastic but not pushy. 3-4 sentences.`);
+    appAddMsg('a', aiIntro || `Hey! I'm Sam 🛍️ I help hosts earn more from every stay — with zero extra effort. Based on ${location}, here are the most popular upsells. Payments are collected automatically via <strong>Stripe</strong>:
 <div class="artifact" style="margin-top:8px">
-  <div class="artifact-head">🛒 Suggested services for your area</div>
+  <div class="artifact-head">🛒 Suggested services for ${location}</div>
   <div class="artifact-body" style="font-size:12px;line-height:1.8">
     <div class="artifact-row">🕐 Early check-in (from 11am) — <strong>£30</strong></div>
     <div class="artifact-row">🌙 Late check-out (until 2pm) — <strong>£30</strong></div>
     <div class="artifact-row">🧺 Welcome hamper — <strong>£45</strong></div>
     <div class="artifact-row">🚲 Bike hire (per day) — <strong>£25</strong></div>
     <div class="artifact-row">🍷 Wine on arrival — <strong>£25</strong></div>
+    <div class="artifact-row">🚗 Airport transfer — <strong>£50</strong></div>
   </div>
 </div>`);
     appAddQRs(['Add all of them', 'Let me pick', 'Adjust prices first']);
   }, 600);
-  return { text: `Passing you to <strong>Sam</strong> 🛍️ — he'll show you how to boost your revenue per stay.`, qrs: [] };
+  return { text: `Passing you to <strong>Sam</strong> 🛍️ — he'll help you earn more from every stay with your Guest Store.`, qrs: [] };
 }
 
 // ─── ALEX FLOW ────────────────────────────────────────────────────────────
@@ -1034,49 +1145,73 @@ async function doAlexFlow(low, input) {
   switch (appConvState) {
 
     case 'ALEX_CHANNEL': {
-      // User's first reply = their booking platform
       appData.bookingChannel = input;
-      appConvState = 'ALEX_TEMPLATES';
-      const pmsOptions = ['Guesty', 'Hostaway', 'Lodgify', 'Smoobu', 'No PMS — direct only'];
-      return { text: `${input} ✓ Connected! Do you use a <strong>PMS</strong> (property management system) to manage your bookings?`, qrs: pmsOptions };
+      appConvState = 'ALEX_MESSAGES';
+      const propName = guidebook.propName || guidebook.propertyName || 'your property';
+      const ai = await callAgent('alex', input, `User connected ${input}. Confirm it's connected. Now show them the automated message schedule — these are pre-written SMS/email templates that fire automatically on a schedule. List: Booking confirmation (immediately), Pre-arrival (3 days before), Check-in day (morning), Mid-stay check-in (day 2), Post-stay review request (day after checkout). These are SEPARATE from the AI chatbot. Ask if they want to activate the schedule or edit any templates first. 3-4 sentences.`);
+      return {
+        text: ai || `${input} ✓ Connected! Now let's set up your <strong>automated message schedule</strong> — pre-written templates that fire at key moments:
+<div class="artifact" style="margin-top:8px">
+  <div class="artifact-head">📩 Automated message schedule</div>
+  <div class="artifact-body" style="font-size:12px;line-height:1.8">
+    <div class="artifact-row">✉️ <strong>Booking confirmation</strong> — immediately after booking</div>
+    <div class="artifact-row">📋 <strong>Pre-arrival info</strong> — 3 days before check-in</div>
+    <div class="artifact-row">🔑 <strong>Check-in day</strong> — morning of arrival</div>
+    <div class="artifact-row">👋 <strong>Mid-stay check-in</strong> — day 2</div>
+    <div class="artifact-row">⭐ <strong>Post-stay review request</strong> — day after checkout</div>
+  </div>
+</div>
+Each message includes your guidebook link and key info. Want to activate the schedule or edit any templates first?`,
+        qrs: ['Activate all', 'Edit templates first', 'Skip messages']
+      };
     }
 
-    case 'ALEX_TEMPLATES': {
-      appData.pmsChoice = input;
-      const hasPms = !low.includes('no pms') && !low.includes('direct');
+    case 'ALEX_MESSAGES': {
       appConvState = 'ALEX_CHATBOT';
+      const skipped = low.includes('skip');
+      const propName = guidebook.propName || guidebook.propertyName || 'your property';
+      const ai2 = await callAgent('alex', input, `${skipped ? 'User skipped messages for now.' : 'User activated/acknowledged the automated messages.'} Now introduce the AI Guest Chatbot — this is a SEPARATE feature from the automated messages. The chatbot lives INSIDE the guidebook and answers guest questions 24/7 from the guidebook content (like "where's the nearest pharmacy?", "how does the heating work?"). It reduces repetitive questions by ~90%. Ask if they want to activate it. 2-3 sentences.`);
       return {
-        text: `${hasPms ? `${input} synced ✓` : `Direct bookings — got it.`} Now the fun part — <strong>your AI chatbot</strong>. It answers guest questions 24/7 in your tone. Here's a draft pre-arrival message I've written for you:
-<div class="artifact" style="margin-top:8px">
-  <div class="artifact-head">📩 Pre-arrival message template</div>
-  <div class="artifact-body" style="font-size:12px;line-height:1.6">
-    Hi [Guest name]! We're so excited to welcome you to <strong>${guidebook.propName || guidebook.propertyName || 'our place'}</strong> 🏡<br>
-    Your guidebook has everything you need before arrival — check-in info, WiFi, local tips and more:<br>
-    ${appShareLink()}
-  </div>
-</div>`,
-        qrs: ["Looks great, activate it!", "Edit the message", "Skip for now"]
+        text: ai2 || `${skipped ? 'No problem — you can set those up later.' : 'Message schedule activated ✓'} Now for the <strong>AI Guest Chatbot</strong> — this is different from the scheduled messages. It lives inside your guidebook and answers guest questions 24/7 using your guidebook content. "Where's the nearest pharmacy?" "How does the heating work?" — it handles it all so you don't have to. Want to activate it?`,
+        qrs: ['Yes, activate the chatbot', 'Skip for now']
       };
     }
 
     case 'ALEX_CHATBOT': {
-      appConvState = 'ALEX_DONE';
-      if (low.includes('skip')) {
-        return { text: `No problem — you can activate templates any time from your dashboard. Your booking channel is connected ✓ Anything else?`, qrs: ['Add Guest Store', 'Back to Anna'] };
-      }
+      appConvState = 'ALEX_CONTACTS';
+      const activated = !low.includes('skip');
+      const ai3 = await callAgent('alex', input, `${activated ? 'AI chatbot is now active — guests can ask questions 24/7.' : 'User skipped the chatbot.'} Now recommend activating Contact Collection — this captures guest details (name, email, phone) for: compliance/guest registration requirements, and building a direct booking database so they can remarket to past guests and avoid OTA commissions. Ask if they want to activate it. 2-3 sentences.`);
       return {
-        text: `All set! 🤖 Your AI chatbot is live and the pre-arrival message will fire automatically. Hosts using this see a <strong>90% drop in repetitive questions</strong>.<br><br>Want to add a Guest Store to increase your revenue per stay too?`,
-        qrs: ['Yes, show me the Guest Store', 'No thanks, I\'m done']
+        text: ai3 || `${activated ? 'AI chatbot activated ✓ Guests can now ask questions 24/7 and get instant answers.' : 'No problem — you can activate it later.'}<br><br>One more thing I'd recommend: <strong>Contact Collection</strong>. It captures guest details for compliance and guest registration — plus you build a direct booking database to remarket to past guests and skip OTA commissions. Want to activate it?`,
+        qrs: ['Yes, activate it', 'Tell me more', 'Skip']
+      };
+    }
+
+    case 'ALEX_CONTACTS': {
+      appConvState = 'ALEX_CAMPAIGNS';
+      const activated = low.includes('yes') || low.includes('activ');
+      const ai4 = await callAgent('alex', input, `${activated ? 'Contact collection is active.' : 'User skipped or asked for more info — briefly explain the benefit then move on.'} Last feature: Campaigns. These are banners shown inside the guidebook that promote specific topics — like local recommendations, key events happening during their stay, or seasonal activities. Great for engagement. Ask if they want to set one up. 2-3 sentences.`);
+      return {
+        text: ai4 || `${activated ? 'Contact collection activated ✓' : 'No worries.'} Last thing — <strong>Campaigns</strong>. You can show banners inside your guidebook promoting specific topics to guests — local recommendations, seasonal events, activities. Guests see them right when they open the guidebook. Want to set one up?`,
+        qrs: ['Set up a campaign', 'Skip for now']
+      };
+    }
+
+    case 'ALEX_CAMPAIGNS': {
+      appConvState = 'ALEX_DONE';
+      const ai5 = await callAgent('alex', input, `Wrap up the Alex flow. Summarise what's been set up (booking channel, messages, chatbot, contacts, campaigns — whichever they activated). Then give a WARM, benefit-driven introduction to Sam and the Guest Store. Explain that hosts in their area typically earn an extra £80-150 per booking with upsells like early check-in, welcome hampers, and local experiences — all collected automatically via Stripe. Make the transition feel natural and exciting, not salesy. Ask if they want to meet Sam. 3-4 sentences.`);
+      return {
+        text: ai5 || `You're all set! 🎉 Your front desk is fully automated — bookings syncing, messages scheduled, and guests getting instant answers 24/7.<br><br>There's one more way to level up: hosts in ${guidebook.location || 'your area'} typically earn an <strong>extra £80-150 per booking</strong> with a Guest Store — things like early check-in, welcome hampers, and local experiences that guests love. Payments are collected automatically via Stripe. Want me to introduce you to <strong>Sam</strong>? He'll set it up in a couple of minutes.`,
+        qrs: ['Yes, meet Sam', 'No thanks, I\'m done', 'Back to Anna']
       };
     }
 
     case 'ALEX_DONE': {
-      if (low.includes('store') || low.includes('revenue') || low.includes('sam')) return appHandoffToSam();
+      if (low.includes('sam') || low.includes('store') || low.includes('revenue') || low.includes('yes') || low.includes('meet')) return appHandoffToSam();
       if (low.includes('back') || low.includes('anna')) { selectAgent('anna'); return { text: '', qrs: [] }; }
-      // Try Claude for freeform Alex conversation
-      const aiAlex = await callAgent('alex', input);
-      if (aiAlex) return { text: aiAlex, qrs: ['Add Guest Store', 'Edit guidebook', 'Back to Anna'] };
-      return { text: `You're all set with the AI chatbot! Anything else you'd like to configure?`, qrs: ['Add Guest Store', 'Edit guidebook', 'Back to Anna'] };
+      const aiDone = await callAgent('alex', input);
+      if (aiDone) return { text: aiDone, qrs: ['Set up Guest Store', 'Back to Anna'] };
+      return { text: `Anything else you'd like to configure?`, qrs: ['Set up Guest Store', 'Back to Anna'] };
     }
 
     default:
@@ -1091,44 +1226,57 @@ async function doSamFlow(low, input) {
   switch (appConvState) {
 
     case 'SAM_SERVICES': {
-      appConvState = 'SAM_CONFIRM';
       if (low.includes('adjust') || low.includes('price')) {
-        return { text: `Sure — which service would you like to reprice?`, qrs: ['Early check-in', 'Late check-out', 'Welcome hamper', 'Bike hire', 'Wine on arrival'] };
+        appConvState = 'SAM_PRICING';
+        const ai = await callAgent('sam', input, `User wants to adjust prices. Ask which service they want to reprice. List the options. 1-2 sentences.`);
+        return { text: ai || `Sure — which service would you like to reprice?`, qrs: ['Early check-in', 'Late check-out', 'Welcome hamper', 'Bike hire', 'Wine on arrival', 'Airport transfer'] };
       }
+      appConvState = 'SAM_STRIPE';
       const selected = low.includes('all')
-        ? 'Early check-in · Late check-out · Welcome hamper · Bike hire · Wine on arrival'
+        ? 'Early check-in · Late check-out · Welcome hamper · Bike hire · Wine on arrival · Airport transfer'
         : input;
+      const ai2 = await callAgent('sam', input, `User selected services: ${selected}. Confirm the selection and explain that next you need to connect Stripe so payments are collected automatically — no manual invoicing, money goes straight to their account. Ask if they have a Stripe account or need to create one. 2-3 sentences.`);
       return {
-        text: `Here's what I'll activate — confirm and they go live instantly:
-<div class="artifact" style="margin-top:8px">
-  <div class="artifact-head">✅ Ready to activate</div>
-  <div class="artifact-body" style="font-size:12px;line-height:1.8">${selected.split('·').map(s => `<div class="artifact-row">✓ ${s.trim()}</div>`).join('')}</div>
-</div>`,
-        qrs: ['Confirm & activate', 'Go back']
+        text: ai2 || `Great choices! To collect payments automatically, we'll connect <strong>Stripe</strong> — money goes straight to your account, no manual invoicing needed. Do you have a Stripe account already, or shall I help you set one up?`,
+        qrs: ['I have Stripe', 'Help me set one up', 'Skip Stripe for now']
       };
     }
 
-    case 'SAM_CONFIRM': {
-      if (low.includes('confirm') || low.includes('activ') || low.includes('yes')) {
-        appData.samConfirmed = true;
-        appConvState = 'SAM_DONE';
-        return { text: `Your Guest Store is live! 💰 These services typically add <strong>£80–150 per booking</strong>. Guests see them on the guidebook welcome screen. Want to set up the AI chatbot as well?`, qrs: ['Set up AI chatbot', "No thanks, I'm done"] };
-      }
+    case 'SAM_PRICING': {
       appConvState = 'SAM_SERVICES';
-      return { text: `No problem — what would you like to change?`, qrs: ['Adjust prices', 'Pick different services', 'Skip for now'] };
+      const ai = await callAgent('sam', input, `User is adjusting pricing for "${input}". Acknowledge the change, then ask if they want to adjust any other prices or proceed with activating the services. 2 sentences.`);
+      return { text: ai || `Updated ✓ Want to adjust any other prices, or shall we proceed?`, qrs: ['Add all services', 'Adjust another price'] };
+    }
+
+    case 'SAM_STRIPE': {
+      appConvState = 'SAM_CAMPAIGNS';
+      const ai3 = await callAgent('sam', input, `${low.includes('skip') ? 'User skipped Stripe for now — they can add it later.' : 'Stripe is connected/being set up.'} Now introduce Campaigns — banners shown inside the guidebook that promote products and services to guests. These are visual promotions guests see when they open the guidebook. Great for seasonal offers, featured experiences, or highlighting popular upsells. Ask if they want to set up a campaign. 2-3 sentences.`);
+      return {
+        text: ai3 || `${low.includes('skip') ? 'No problem — you can connect Stripe later from your dashboard.' : 'Stripe connected ✓ Payments will be collected automatically.'}<br><br>One last thing — <strong>Campaigns</strong>. You can show promotional banners inside your guidebook to highlight services, seasonal offers, or featured experiences. Guests see them right when they open the guidebook. Want to set one up?`,
+        qrs: ['Set up a campaign', 'Skip for now']
+      };
+    }
+
+    case 'SAM_CAMPAIGNS': {
+      appConvState = 'SAM_DONE';
+      appData.samConfirmed = true;
+      const ai4 = await callAgent('sam', input, `Wrap up. Guest Store is live! Summarise: services activated, Stripe for automatic payments, campaigns for promotion. Mention hosts typically add £80-150 per booking. Then offer: set up AI chatbot with Alex, or go back to Anna. Make it feel like a big accomplishment. 2-3 sentences.`);
+      return {
+        text: ai4 || `Your Guest Store is live! 🎉 Services are on your guidebook welcome screen, payments via Stripe, and campaigns ready to promote. Hosts typically add <strong>£80–150 per booking</strong> with this setup. Want to automate guest communication next?`,
+        qrs: ['Set up automated comms', 'Back to Anna', "I'm done"]
+      };
     }
 
     case 'SAM_DONE': {
-      if (low.includes('chatbot') || low.includes('alex') || low.includes('ai')) return appHandoffToAlex();
-      if (low.includes('back') || low.includes('anna')) { selectAgent('anna'); return { text: '', qrs: [] }; }
-      // Try Claude for freeform Sam conversation
+      if (low.includes('chatbot') || low.includes('alex') || low.includes('automat') || low.includes('comms')) return appHandoffToAlex();
+      if (low.includes('back') || low.includes('anna') || low.includes('done')) { selectAgent('anna'); return { text: '', qrs: [] }; }
       const aiSam = await callAgent('sam', input);
-      if (aiSam) return { text: aiSam, qrs: ['Edit guidebook', 'Set up AI chatbot', 'Back to Anna'] };
-      return { text: `You're all set! Your Guest Store is live and earning. Anything else?`, qrs: ['Edit guidebook', 'Set up AI chatbot', 'Back to Anna'] };
+      if (aiSam) return { text: aiSam, qrs: ['Automate guest comms', 'Back to Anna'] };
+      return { text: `Your Guest Store is live and earning. Anything else?`, qrs: ['Automate guest comms', 'Back to Anna'] };
     }
 
     default:
-      appConvState = 'SAM_INTRO';
+      appConvState = 'SAM_SERVICES';
       return { text: `Let me show you what I can set up for ${location}…`, qrs: [] };
   }
 }
@@ -1304,7 +1452,7 @@ function transitionToApp(displayName, email) {
       appAddQRs(['Test the guidebook', 'Add more details', 'Reduce guest questions', 'Increase revenue per stay']);
     } else {
       appConvState = 'GUIDEBOOK_CHECKIN';
-      appAddMsg('a', `Welcome, <strong>${displayName}</strong>! 🎉 Let's make your guidebook shareable in a few quick steps.`);
+      appAddMsg('a', `Welcome, <strong>${displayName}</strong>! 🎉 Let's set up your guest experience — a few quick steps and your guests will have everything they need before they arrive.`);
       setTimeout(() => {
         appAddMsg('a', `First: what are your <strong>check-in and check-out times?</strong>`);
         appAddQRs(['3pm / 11am', '4pm / 10am', '2pm / 12pm']);
@@ -1424,7 +1572,7 @@ window.switchToAdvanced = switchToAdvanced;
   // Show the demo guidebook cover immediately — grid only appears after "Get Started"
   renderCover();
 
-  addMsg('a', `Hi! 👋 I'll help you build a beautiful guidebook in minutes — no forms, just a quick chat. <strong>What kind of property do you have?</strong>`);
+  addMsg('a', `Hi! 👋 I'll help you create the perfect guest experience — no forms, just a quick chat. We'll set up your guidebook, automate guest communication, and help you earn more per stay. <strong>What kind of property do you have?</strong>`);
   addQRs(['One apartment', 'A cabin or cottage', 'A villa or house', 'Multiple properties']);
   scrollBottom();
 })();
