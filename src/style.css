@@ -794,7 +794,7 @@ textarea::placeholder { color: var(--slate); }
 
 /* ─── LEFT: CHAT PANEL ─────────────────────────────────────── */
 .app-chat-panel {
-  flex: 0 0 55%; display: flex; flex-direction: column;
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--page);
 }
@@ -802,34 +802,36 @@ textarea::placeholder { color: var(--slate); }
 /* AI Agents row */
 .app-agents-bar {
   background: white; border-bottom: 1px solid var(--border);
-  padding: 14px 20px 12px; flex-shrink: 0;
+  padding: 16px 20px 14px; flex-shrink: 0;
 }
 .app-agents-title {
-  font-size: 12px; font-weight: 700; color: var(--slate);
+  font-size: 13px; font-weight: 700; color: var(--slate);
   text-transform: uppercase; letter-spacing: .06em;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-.app-agents-row { display: flex; gap: 8px; }
+.app-agents-row { display: flex; gap: 10px; }
 .app-agent {
-  flex: 1; display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: 8px;
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px;
   border: 1.5px solid var(--border);
-  cursor: pointer; transition: border-color .15s, background .15s;
+  cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s;
   background: white; position: relative; min-width: 0;
 }
 .app-agent:hover { border-color: var(--teal); background: var(--teal-l); }
-.app-agent.on { border-color: var(--teal); background: var(--teal-l); }
-.app-agent-av {
-  width: 28px; height: 28px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; color: var(--navy);
-  flex-shrink: 0;
+.app-agent.on {
+  border-color: var(--teal); background: var(--teal-l);
+  box-shadow: 0 2px 12px rgba(62,217,204,.25);
 }
+.app-agent-av {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: var(--navy);
+  flex-shrink: 0; transition: box-shadow .15s;
+}
+.app-agent.on .app-agent-av { box-shadow: 0 0 0 3px rgba(62,217,204,.35); }
 .app-agent-info { flex: 1; min-width: 0; }
-.app-agent-name { font-size: 11.5px; font-weight: 700; color: var(--navy-h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.app-agent-role { font-size: 9.5px; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.app-agent-icon { color: var(--muted); flex-shrink: 0; }
-.app-agent.on .app-agent-icon { color: var(--teal-d); }
+.app-agent-name { font-size: 13px; font-weight: 700; color: var(--navy-h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-agent-role { font-size: 10.5px; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* App messages */
 .app-msgs {
@@ -892,13 +894,13 @@ textarea::placeholder { color: var(--slate); }
 
 /* ─── RIGHT: PREVIEW PANEL ─────────────────────────────────── */
 .app-preview-panel {
-  flex: 1; display: flex; flex-direction: column;
+  flex: 0 0 380px; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 24px 32px; gap: 16px;
+  padding: 20px 32px; gap: 14px;
   background: white;
 }
-.app-phone { width: 260px; flex-shrink: 0; }
-.app-phone .screen { height: 440px; }
+.app-phone { width: 280px; flex-shrink: 0; }
+.app-phone .screen { height: 490px; }
 .app-phone-actions { display: flex; gap: 10px; }
 .app-action-btn {
   display: flex; align-items: center; gap: 6px;
@@ -960,3 +962,36 @@ textarea::placeholder { color: var(--slate); }
   color: var(--navy); cursor: pointer; transition: .12s;
 }
 .te-save:hover { background: var(--teal-d); }
+
+/* ─── RESPONSIVE ──────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .hero-head h1 { font-size: 32px; }
+  .hero-head p { font-size: 13.5px; }
+  .interactive { max-width: 100%; gap: 16px; }
+  .nav-link { padding: 8px 10px; font-size: 14px; }
+}
+
+@media (max-width: 900px) {
+  .interactive { flex-direction: column; overflow-y: auto; padding-bottom: 32px; }
+  .chat { min-height: 380px; max-height: 55vh; }
+  .preview { padding: 16px 0 0; }
+  .hero-head h1 { font-size: 28px; }
+  .hero-head { padding: 14px 20px 10px; }
+  .nav-link { display: none; }
+  /* App layout stacks too */
+  .app-body { flex-direction: column; }
+  .app-preview-panel { flex: 0 0 auto; padding: 16px; }
+  .app-agents-row { flex-wrap: wrap; }
+  .app-agent { flex: 0 0 calc(50% - 5px); }
+}
+
+@media (max-width: 600px) {
+  .hero-head h1 { font-size: 24px; letter-spacing: -0.8px; }
+  .hero-head p { font-size: 13px; }
+  .interactive { padding: 0 12px 24px; }
+  .phone, .app-phone { width: 240px; }
+  .screen, .app-phone .screen { height: 420px; }
+  nav { padding: 0 16px; }
+  .nav-r { gap: 2px; }
+  .btn-login { display: none; }
+}

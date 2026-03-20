@@ -628,13 +628,13 @@ function showG3panel() {
     </div>
     <div class="g3-or">— or —</div>
     <div class="g3-sso">
-      <button class="g3-sso-btn">
+      <button class="g3-sso-btn" disabled style="opacity:.45;cursor:not-allowed">
         <svg viewBox="0 0 24 24" width="15" height="15"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        Google
+        Google <span style="font-size:9px;color:#94a3b8;margin-left:2px">Coming soon</span>
       </button>
-      <button class="g3-sso-btn">
+      <button class="g3-sso-btn" disabled style="opacity:.45;cursor:not-allowed">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-        Facebook
+        Facebook <span style="font-size:9px;color:#94a3b8;margin-left:2px">Coming soon</span>
       </button>
     </div>
     <p class="g3-terms">By creating an account you accept our <a href="#">Terms &amp; Conditions</a> and <a href="#">Privacy Policy</a>.</p>
@@ -705,6 +705,57 @@ let activeAgent   = 'anna';
 let appBusy       = false;
 let appConvState  = 'GUIDEBOOK_START'; // state machine for in-app flow
 let inactivityTimer = null;
+
+// ─── CLAUDE AI INTEGRATION ───────────────────────────────────────────────
+// Use real AI on deployed Vercel; simulation on localhost
+const USE_AI = typeof location !== 'undefined' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+
+const AGENT_PROMPTS = {
+  anna: `You are Anna, an AI Guidebook Assistant at Touch Stay. You help property hosts build beautiful digital guidebooks. You are warm, helpful, and efficient. You know about vacation rentals, Airbnb, Booking.com, property management. You guide users through: check-in/out times, cover photos, arrival info, WiFi details, local recommendations. Keep responses concise (2-3 sentences max). Use emoji sparingly. When the guidebook is complete, encourage sharing and suggest the AI chatbot (Alex) for reducing guest questions or Guest Store (Sam) for increasing revenue.`,
+
+  alex: `You are Alex, the Front Desk Agent at Touch Stay. You help hosts set up AI-powered guest communication: connecting booking channels (Airbnb, Booking.com, Vrbo), PMS integrations (Guesty, Hostaway, Lodgify), and automated message templates. You're technical but approachable. Keep responses concise (2-3 sentences). When done, suggest the Guest Store (Sam) for revenue.`,
+
+  taylor: `You are Taylor, the IT & Integrations specialist at Touch Stay. You help with PMS connections, smart lock integrations (Yale, August, Nuki, Schlage), noise monitor setup (Minut, NoiseAware), and API configurations. You know REST APIs, webhooks, OAuth flows. You're technical and precise. Keep responses concise (2-3 sentences).`,
+
+  sam: `You are Sam, the Store & Upsells specialist at Touch Stay. You help hosts set up a Guest Store to increase per-stay revenue through services like early check-in, late check-out, welcome hampers, bike hire, wine on arrival, and local experiences. You know pricing benchmarks: early/late check-in £20-40, hampers £30-60, bike hire £15-30/day. Keep responses concise (2-3 sentences).`
+};
+
+let agentHistory = { anna: [], alex: [], taylor: [], sam: [] };
+
+async function callAgent(agentId, userMessage) {
+  if (!USE_AI) return null;
+  const history = agentHistory[agentId];
+  history.push({ role: 'user', content: userMessage });
+
+  const context = `\n\nCurrent guidebook state: ${JSON.stringify({
+    propertyName: guidebook.propertyName,
+    location: guidebook.location || guidebook.propAddr,
+    propertyType: guidebook.propertyType,
+    hostName: guidebook.hostName,
+    currentState: appConvState
+  })}`;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        system: AGENT_PROMPTS[agentId] + context,
+        messages: history.slice(-10)
+      })
+    });
+    if (!res.ok) { history.pop(); return null; }
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || null;
+    if (reply) history.push({ role: 'assistant', content: reply });
+    return reply;
+  } catch (e) {
+    history.pop();
+    return null; // fallback to simulation
+  }
+}
 
 // Extra data collected inside the app
 let appData = {
@@ -818,6 +869,13 @@ async function simulateAppResponse(input) {
   if (activeAgent === 'alex') return doAlexFlow(low, input);
   // ── SAM FLOW ───────────────────────────────────────────────────────────
   if (activeAgent === 'sam')  return doSamFlow(low, input);
+  // ── TAYLOR FLOW (fully AI-driven) ─────────────────────────────────────
+  if (activeAgent === 'taylor') {
+    if (low.includes('back') || low.includes('anna')) { selectAgent('anna'); return { text: '', qrs: [] }; }
+    const aiTaylor = await callAgent('taylor', input);
+    if (aiTaylor) return { text: aiTaylor, qrs: ['Smart lock setup', 'PMS integration', 'API docs', 'Back to Anna'] };
+    return { text: `I can help with PMS connections, smart locks, noise monitors, and API setup. What do you need?`, qrs: ['Smart lock setup', 'PMS integration', 'API docs', 'Back to Anna'] };
+  }
 
   // ── ANNA FLOW (state machine) ──────────────────────────────────────────
   switch (appConvState) {
@@ -903,7 +961,10 @@ async function simulateAppResponse(input) {
         appShowGrid();
         return { text: `Preview is live on the right ↗ Tap GET STARTED to test the guest view, or copy the link below:<br>${appShareLink()}`, qrs: ['Reduce guest questions', 'Increase revenue per stay'] };
       }
-      // Show upsell pitch
+      // Try Claude for freeform conversation
+      const aiReply = await callAgent('anna', input);
+      if (aiReply) return { text: aiReply, qrs: ['Reduce guest questions with AI', 'Increase revenue per stay'] };
+      // Fallback
       return {
         text: `Hosts using Touch Stay reduce repetitive guest questions by <strong>90%</strong> and halve their response time. Want to go further?`,
         qrs: ['Reduce guest questions with AI', 'Increase revenue per stay']
@@ -919,8 +980,12 @@ async function simulateAppResponse(input) {
       return { text: `No problem! What would you like to work on?`, qrs: ['Reduce guest questions', 'Increase revenue per stay', 'Edit guidebook'] };
     }
 
-    default:
+    default: {
+      // Freeform — try Claude
+      const aiDefault = await callAgent('anna', input);
+      if (aiDefault) return { text: aiDefault, qrs: ['Reduce guest questions', 'Increase revenue per stay', 'Edit guidebook'] };
       return { text: `What would you like to work on?`, qrs: ['Reduce guest questions', 'Increase revenue per stay', 'Edit guidebook'] };
+    }
   }
 }
 
@@ -1007,6 +1072,10 @@ async function doAlexFlow(low, input) {
 
     case 'ALEX_DONE': {
       if (low.includes('store') || low.includes('revenue') || low.includes('sam')) return appHandoffToSam();
+      if (low.includes('back') || low.includes('anna')) { selectAgent('anna'); return { text: '', qrs: [] }; }
+      // Try Claude for freeform Alex conversation
+      const aiAlex = await callAgent('alex', input);
+      if (aiAlex) return { text: aiAlex, qrs: ['Add Guest Store', 'Edit guidebook', 'Back to Anna'] };
       return { text: `You're all set with the AI chatbot! Anything else you'd like to configure?`, qrs: ['Add Guest Store', 'Edit guidebook', 'Back to Anna'] };
     }
 
@@ -1051,6 +1120,10 @@ async function doSamFlow(low, input) {
 
     case 'SAM_DONE': {
       if (low.includes('chatbot') || low.includes('alex') || low.includes('ai')) return appHandoffToAlex();
+      if (low.includes('back') || low.includes('anna')) { selectAgent('anna'); return { text: '', qrs: [] }; }
+      // Try Claude for freeform Sam conversation
+      const aiSam = await callAgent('sam', input);
+      if (aiSam) return { text: aiSam, qrs: ['Edit guidebook', 'Set up AI chatbot', 'Back to Anna'] };
       return { text: `You're all set! Your Guest Store is live and earning. Anything else?`, qrs: ['Edit guidebook', 'Set up AI chatbot', 'Back to Anna'] };
     }
 
