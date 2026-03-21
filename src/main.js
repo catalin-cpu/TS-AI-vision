@@ -707,8 +707,39 @@ let appConvState  = 'GUIDEBOOK_START'; // state machine for in-app flow
 let inactivityTimer = null;
 
 // ─── CLAUDE AI INTEGRATION ───────────────────────────────────────────────
-// Use real AI on deployed Vercel; simulation on localhost
-const USE_AI = typeof location !== 'undefined' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+// Always try AI — falls back gracefully if /api/chat is unavailable
+const USE_AI = true;
+
+// Shared product knowledge injected into all agent prompts
+const PRODUCT_KNOWLEDGE = `
+TOUCH STAY PRODUCT KNOWLEDGE:
+Touch Stay is a guest experience platform (not just a guidebook tool). It helps property hosts provide amazing guest experiences while saving time and increasing revenue.
+
+Guide types: Short-term rentals, vacation homes, B&Bs, hotels, glamping, campsites, RV parks, events, weddings, employee onboarding, non-profits, pet sitting, home swaps. Guides are NOT just for vacation rentals.
+
+Core features:
+- AI Guidebook Generator: paste an Airbnb/Booking.com link to auto-generate a guidebook in minutes
+- AI Chatbot: lives inside the guidebook, answers guest questions 24/7 from guidebook content
+- AI Content Assistant: generates topic content, integrated into every text box
+- Upsell Widget / Guest Store: sell add-on services (early check-in, hampers, bike hire, experiences). Payments via Stripe.
+- Contact Collection: capture guest name/email/phone for compliance, guest registration, and direct rebooking
+- 5-Star Review Pop-up ("Leave a Review"): routes 1-3 star feedback privately to host, directs 4-5 star guests to Google Places/TripAdvisor
+- Two-Way Messaging (Message Hub): SMS from dashboard, templates, scheduled messages
+- Campaigns: banners inside guidebook promoting topics, events, or products
+- Data Dashboard: track guide views, engagement, feedback
+- Brandable design: logos, fonts, colours, custom domains
+
+Integrations (PMS/OTA):
+Airbnb, Guesty, Hostaway, Lodgify, OwnerRez, Streamline, SuperControl, Track, Tokeet, Hosteeva, Mews, Beds24, Cloudbeds, Hosthub, Hostify, Hostex, Uplisting, Octorate, Rentlio, Anytime Booking, Avantio, Escapia, Hospitable, Smily, Host Tools, Rent Manager, and more.
+
+Experience integrations: Viator for local experiences/tours.
+
+Pricing: 14-day free trial, no credit card required. Plans vary by number of properties and guide type.
+
+Key stats: 92% of users save time. Hosts report zero operational calls after setup. 90% reduction in repetitive questions with the AI chatbot.
+
+Value proposition: Save time, help guests help themselves, earn more per stay, protect review scores.
+`;
 
 const AGENT_PROMPTS = {
   anna: `You are Anna, an AI Guest Experience assistant at Touch Stay. You help property hosts create the best possible guest experience — from a shareable digital guidebook to automated communication and revenue tools.
@@ -730,7 +761,10 @@ Problems you solve for hosts:
 
 After the guidebook is set up, celebrate and explain what else Touch Stay can do — nudge toward Alex (automate guest communication, reduce messages by 90%) or Sam (earn an extra £80-150 per booking with Guest Store). Frame everything around the guest experience, not just the guidebook.
 
-Keep responses concise (2-3 sentences max). Use emoji sparingly. Be conversational, not robotic.`,
+Keep responses concise (2-3 sentences max). Use emoji sparingly. Be conversational, not robotic.
+
+IMPORTANT: If the user asks a question unrelated to the current step (e.g. about pricing, other guide types, features, employee guides, etc.), answer their question helpfully using the product knowledge below, then gently guide back to where you were.
+` + PRODUCT_KNOWLEDGE,
 
   alex: `You are Alex, the Front Desk Agent at Touch Stay. You automate guest communication so hosts never answer the same question twice.
 
@@ -750,7 +784,10 @@ Problems you solve:
 - Not collecting guest contacts for direct rebooking
 - Guests missing the best local tips in the guidebook
 
-Keep responses concise (2-3 sentences max). Be conversational.`,
+Keep responses concise (2-3 sentences max). Be conversational.
+
+IMPORTANT: If the user asks a question unrelated to the current step, answer their question helpfully using the product knowledge below, then gently guide back.
+` + PRODUCT_KNOWLEDGE,
 
   taylor: `You are Taylor, the IT & Integrations specialist at Touch Stay. You connect the host's tech stack and automate the guest experience from booking to checkout.
 
@@ -768,7 +805,10 @@ Problems you solve:
 - Wanting local experiences in the guidebook without time to curate them
 - Guest experience not starting automatically when a booking comes in
 
-Keep responses concise (2-3 sentences). Be technical but clear.`,
+Keep responses concise (2-3 sentences). Be technical but clear.
+
+IMPORTANT: If the user asks a question unrelated to the current step, answer their question helpfully using the product knowledge below, then gently guide back.
+` + PRODUCT_KNOWLEDGE,
 
   sam: `You are Sam, the Store & Upsells specialist at Touch Stay. You help hosts earn more from every stay with zero extra effort.
 
@@ -786,7 +826,10 @@ Problems you solve:
 - Collecting payments being awkward and manual
 - Not knowing what to charge or what guests want in their area
 
-Keep responses concise (2-3 sentences). Be conversational.`
+Keep responses concise (2-3 sentences). Be conversational.
+
+IMPORTANT: If the user asks a question unrelated to the current step, answer their question helpfully using the product knowledge below, then gently guide back.
+` + PRODUCT_KNOWLEDGE
 };
 
 let agentHistory = { anna: [], alex: [], taylor: [], sam: [] };
@@ -955,9 +998,44 @@ function appShareLink() {
   return `<code style="font-size:11px;background:rgba(62,217,204,.12);color:#1a6b64;padding:4px 10px;border-radius:6px;display:inline-block;margin-top:4px;word-break:break-all">guide.touchstay.com/${slug}</code>`;
 }
 
+// Detect if user input is off-topic for the current structured state
+// Returns true if the input looks like a question or statement unrelated to the expected data
+function isOffTopic(input, expectedState) {
+  const low = input.toLowerCase();
+  // Quick replies / short expected answers are never off-topic
+  if (input.length < 15) return false;
+  // Questions are likely off-topic in data-collection states
+  if (low.includes('?')) return true;
+  // Mentions of other features, products, or unrelated topics
+  if (low.match(/\b(pric|cost|plan|employ|staff|team|wedding|event|cancel|refund|account|password|login|help|support|different guide|another guide|how does|what is|can i|can you|do you|tell me about)\b/i)) return true;
+  return false;
+}
+
+// Get QR suggestions appropriate for the current state (to show after off-topic answer)
+function getCurrentQRs() {
+  const STATE_QRS = {
+    'GUIDEBOOK_CHECKIN': ['3pm / 11am', '4pm / 10am', '2pm / 12pm'],
+    'GUIDEBOOK_COVER': ['Keep this photo', 'Use a different photo'],
+    'GUIDEBOOK_ARRIVAL': ['Key lockbox', 'Smart lock', 'I meet them in person'],
+    'GUIDEBOOK_WIFI': ['No WiFi'],
+    'GUIDEBOOK_SPOTS': ['Skip for now', 'Best local restaurant', 'Add a few'],
+  };
+  return STATE_QRS[appConvState] || [];
+}
+
 async function simulateAppResponse(input) {
   await sleep(400 + Math.random() * 300);
   const low = input.toLowerCase();
+
+  // ── OFF-TOPIC DETECTION (all agents, structured states only) ──────────
+  const structuredStates = ['GUIDEBOOK_CHECKIN','GUIDEBOOK_COVER','GUIDEBOOK_ARRIVAL','GUIDEBOOK_WIFI','GUIDEBOOK_SPOTS','ALEX_CHANNEL','ALEX_MESSAGES','ALEX_CHATBOT','ALEX_CONTACTS','ALEX_CAMPAIGNS','SAM_SERVICES','SAM_STRIPE','SAM_CAMPAIGNS','SAM_PRICING'];
+  if (structuredStates.includes(appConvState) && isOffTopic(input, appConvState)) {
+    // Let Claude answer the question freely, don't advance state
+    const aiAnswer = await callAgent(activeAgent, input);
+    if (aiAnswer) return { text: aiAnswer, qrs: getCurrentQRs() };
+    // Fallback: acknowledge and re-prompt
+    return { text: `Great question! That's something we can explore. For now, let's continue where we were.`, qrs: getCurrentQRs() };
+  }
 
   // ── ALEX FLOW ──────────────────────────────────────────────────────────
   if (activeAgent === 'alex') return doAlexFlow(low, input);
@@ -967,8 +1045,8 @@ async function simulateAppResponse(input) {
   if (activeAgent === 'taylor') {
     if (low.includes('back') || low.includes('anna')) { selectAgent('anna'); return { text: '', qrs: [] }; }
     const aiTaylor = await callAgent('taylor', input);
-    if (aiTaylor) return { text: aiTaylor, qrs: ['Smart lock setup', 'PMS integration', 'API docs', 'Back to Anna'] };
-    return { text: `I can help with PMS connections, smart locks, noise monitors, and API setup. What do you need?`, qrs: ['Smart lock setup', 'PMS integration', 'API docs', 'Back to Anna'] };
+    if (aiTaylor) return { text: aiTaylor, qrs: ['PMS integration', 'Viator experiences', 'Booking automations', 'Back to Anna'] };
+    return { text: `I can help with PMS connections, OTA sync, Viator experiences, and booking-triggered automations. What do you need?`, qrs: ['PMS integration', 'Viator experiences', 'Booking automations', 'Back to Anna'] };
   }
 
   // ── ANNA FLOW (state machine) ──────────────────────────────────────────
