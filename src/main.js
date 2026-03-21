@@ -1572,7 +1572,7 @@ window.switchToAdvanced = switchToAdvanced;
   // Show the demo guidebook cover immediately — grid only appears after "Get Started"
   renderCover();
 
-  addMsg('a', `Hi! 👋 I'll help you create the perfect guest experience — no forms, just a quick chat. We'll set up your guidebook, automate guest communication, and help you earn more per stay. <strong>What kind of property do you have?</strong>`);
+  addMsg('a', `Hi! 👋 I'll help you create the perfect guest experience — no forms, just an easy chat. <strong>What kind of property do you have?</strong>`);
   addQRs(['One apartment', 'A cabin or cottage', 'A villa or house', 'Multiple properties']);
   scrollBottom();
 })();
