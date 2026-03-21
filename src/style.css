@@ -152,18 +152,19 @@ nav {
   text-align: center;
   padding: 22px 24px 14px;
   flex-shrink: 0;
-  max-width: 700px; width: 100%;
+  width: 100%;
 }
 .hero-head .pill { margin: 0 auto 12px; }
 .hero-head h1 {
-  font-family: var(--font); font-size: 40px; font-weight: 800;
-  line-height: 1.1; color: var(--navy);
-  letter-spacing: -1.4px; margin-bottom: 10px;
+  font-family: var(--font); font-size: 36px; font-weight: 800;
+  line-height: 1.15; color: var(--navy);
+  letter-spacing: -1.2px; margin-bottom: 10px;
+  max-width: 980px; margin-left: auto; margin-right: auto;
 }
 .hero-head h1 em { font-style: italic; color: var(--teal); font-weight: 800; }
 .hero-head p {
   font-size: 14.5px; color: #6b7a8a; line-height: 1.65;
-  max-width: 460px; margin: 0 auto;
+  margin: 0 auto;
   font-weight: 400;
 }
 
@@ -982,7 +983,7 @@ textarea::placeholder { color: var(--slate); }
   .interactive { flex-direction: column; overflow-y: auto; padding-bottom: 32px; }
   .chat { min-height: 380px; max-height: 55vh; }
   .preview { padding: 16px 0 0; }
-  .hero-head h1 { font-size: 28px; }
+  .hero-head h1 { font-size: 28px; white-space: normal; }
   .hero-head { padding: 14px 20px 10px; }
   .nav-link { display: none; }
   /* App layout stacks too */
