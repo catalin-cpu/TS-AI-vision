@@ -149,6 +149,37 @@ function buildRaw(text, qrs = [], update = {}) {
   return `${text}\n<update>\n${JSON.stringify(update, null, 2)}\n</update>\n${qrs.map(q => `<qr>${q}</qr>`).join('')}`;
 }
 
+// ─── SHARED PRODUCT KNOWLEDGE (used by landing + in-app agents) ──────────
+const PRODUCT_KNOWLEDGE = `
+TOUCH STAY PRODUCT KNOWLEDGE:
+Touch Stay is a guest experience platform (not just a guidebook tool). It helps property hosts provide amazing guest experiences while saving time and increasing revenue.
+
+Guide types: Short-term rentals, vacation homes, B&Bs, hotels, glamping, campsites, RV parks, events, weddings, employee onboarding, non-profits, pet sitting, home swaps. Guides are NOT just for vacation rentals.
+
+Core features:
+- AI Guidebook Generator: paste an Airbnb/Booking.com link to auto-generate a guidebook in minutes
+- AI Chatbot: lives inside the guidebook, answers guest questions 24/7 from guidebook content
+- AI Content Assistant: generates topic content, integrated into every text box
+- Upsell Widget / Guest Store: sell add-on services (early check-in, hampers, bike hire, experiences). Payments via Stripe.
+- Contact Collection: capture guest name/email/phone for compliance, guest registration, and direct rebooking
+- 5-Star Review Pop-up ("Leave a Review"): routes 1-3 star feedback privately to host, directs 4-5 star guests to Google Places/TripAdvisor
+- Two-Way Messaging (Message Hub): SMS from dashboard, templates, scheduled messages
+- Campaigns: banners inside guidebook promoting topics, events, or products
+- Data Dashboard: track guide views, engagement, feedback
+- Brandable design: logos, fonts, colours, custom domains
+
+Integrations (PMS/OTA):
+Airbnb, Guesty, Hostaway, Lodgify, OwnerRez, Streamline, SuperControl, Track, Tokeet, Hosteeva, Mews, Beds24, Cloudbeds, Hosthub, Hostify, Hostex, Uplisting, Octorate, Rentlio, Anytime Booking, Avantio, Escapia, Hospitable, Smily, Host Tools, Rent Manager, and more.
+
+Experience integrations: Viator for local experiences/tours.
+
+Pricing: 14-day free trial, no credit card required. Plans vary by number of properties and guide type.
+
+Key stats: 92% of users save time. Hosts report zero operational calls after setup. 90% reduction in repetitive questions with the AI chatbot.
+
+Value proposition: Save time, help guests help themselves, earn more per stay, protect review scores.
+`;
+
 // ─── LANDING PAGE CHAT — CLAUDE-ENHANCED ─────────────────────────────────
 
 const LANDING_SYSTEM_PROMPT = `You are the Touch Stay AI assistant on the landing page. You help property hosts get started with Touch Stay.
@@ -788,37 +819,6 @@ let inactivityTimer = null;
 // ─── CLAUDE AI INTEGRATION ───────────────────────────────────────────────
 // Always try AI — falls back gracefully if /api/chat is unavailable
 const USE_AI = true;
-
-// Shared product knowledge injected into all agent prompts
-const PRODUCT_KNOWLEDGE = `
-TOUCH STAY PRODUCT KNOWLEDGE:
-Touch Stay is a guest experience platform (not just a guidebook tool). It helps property hosts provide amazing guest experiences while saving time and increasing revenue.
-
-Guide types: Short-term rentals, vacation homes, B&Bs, hotels, glamping, campsites, RV parks, events, weddings, employee onboarding, non-profits, pet sitting, home swaps. Guides are NOT just for vacation rentals.
-
-Core features:
-- AI Guidebook Generator: paste an Airbnb/Booking.com link to auto-generate a guidebook in minutes
-- AI Chatbot: lives inside the guidebook, answers guest questions 24/7 from guidebook content
-- AI Content Assistant: generates topic content, integrated into every text box
-- Upsell Widget / Guest Store: sell add-on services (early check-in, hampers, bike hire, experiences). Payments via Stripe.
-- Contact Collection: capture guest name/email/phone for compliance, guest registration, and direct rebooking
-- 5-Star Review Pop-up ("Leave a Review"): routes 1-3 star feedback privately to host, directs 4-5 star guests to Google Places/TripAdvisor
-- Two-Way Messaging (Message Hub): SMS from dashboard, templates, scheduled messages
-- Campaigns: banners inside guidebook promoting topics, events, or products
-- Data Dashboard: track guide views, engagement, feedback
-- Brandable design: logos, fonts, colours, custom domains
-
-Integrations (PMS/OTA):
-Airbnb, Guesty, Hostaway, Lodgify, OwnerRez, Streamline, SuperControl, Track, Tokeet, Hosteeva, Mews, Beds24, Cloudbeds, Hosthub, Hostify, Hostex, Uplisting, Octorate, Rentlio, Anytime Booking, Avantio, Escapia, Hospitable, Smily, Host Tools, Rent Manager, and more.
-
-Experience integrations: Viator for local experiences/tours.
-
-Pricing: 14-day free trial, no credit card required. Plans vary by number of properties and guide type.
-
-Key stats: 92% of users save time. Hosts report zero operational calls after setup. 90% reduction in repetitive questions with the AI chatbot.
-
-Value proposition: Save time, help guests help themselves, earn more per stay, protect review scores.
-`;
 
 const AGENT_PROMPTS = {
   anna: `You are Anna, an AI Guest Experience assistant at Touch Stay. You help property hosts create the best possible guest experience — from a shareable digital guidebook to automated communication and revenue tools.
