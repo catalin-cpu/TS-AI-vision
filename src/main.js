@@ -149,31 +149,110 @@ function buildRaw(text, qrs = [], update = {}) {
   return `${text}\n<update>\n${JSON.stringify(update, null, 2)}\n</update>\n${qrs.map(q => `<qr>${q}</qr>`).join('')}`;
 }
 
-// ─── MAIN AI SIMULATION ───────────────────────────────────────────────────
+// ─── LANDING PAGE CHAT — CLAUDE-ENHANCED ─────────────────────────────────
+
+const LANDING_SYSTEM_PROMPT = `You are the Touch Stay AI assistant on the landing page. You help property hosts get started with Touch Stay.
+
+You are warm, helpful, and knowledgeable. Answer any question the user has about Touch Stay, then gently guide them back to the setup flow.
+
+IMPORTANT CONTEXT:
+- You are currently helping the user set up their first guide
+- Touch Stay guides are NOT just for vacation rentals — they work for employee onboarding, events, weddings, B&Bs, hotels, glamping, campsites, pet sitting, and more
+- If someone asks about a different type of guide (e.g. for staff/employees), enthusiastically confirm Touch Stay supports that and help them proceed
+- After answering their question, always guide back to the current step in the flow
+
+Current step: STEP_PLACEHOLDER
+
+Keep responses to 2-3 sentences. Be conversational.
+` + PRODUCT_KNOWLEDGE;
+
+// Detect if landing page input is off-topic for the current state
+function isLandingOffTopic(input, state) {
+  const low = input.toLowerCase();
+  if (low.length < 12) return false;
+  // Questions
+  if (low.includes('?')) return true;
+  // Feature/product questions
+  if (low.match(/\b(employ|staff|team|wedding|event|different|another|type of guide|kind of guide|can i|can you|do you|tell me|how does|what is|what about|pricing|cost|plan|integrat|pms|chatbot|store|review|campaign|contact|viator)\b/)) return true;
+  // Unrelated statements
+  if (low.match(/\b(i want|i need|i'd like|i would like|actually|instead|rather)\b/) && low.match(/\b(different|other|another|staff|employ|team|not a|not for)\b/)) return true;
+  return false;
+}
+
+async function callLandingAI(input, stateHint) {
+  try {
+    const systemPrompt = LANDING_SYSTEM_PROMPT.replace('STEP_PLACEHOLDER', stateHint);
+    // Use a simple history for the landing page
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 250,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: input }]
+      })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.content?.[0]?.text || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+const STATE_HINTS = {
+  PROPERTY_TYPE: 'Asking what kind of property they have (apartment, villa, cabin, etc.)',
+  PLATFORM_LINK: 'Asking if they list on Airbnb or Booking.com so we can auto-import',
+  MANUAL_LOCATION: 'Asking where the property is located',
+  MANUAL_CONTACT: 'Asking for their name and contact details',
+  WANT_SAVE: 'Asking if they want to add more details or create their account',
+  ADDING_MORE: 'They chose to add more details — asking what to add',
+};
+
 async function simulateAnna(input) {
   await sleep(600 + Math.random() * 600);
   const lower = input.toLowerCase().trim();
 
-  // Off-topic / confusion detection (skip in DONE / SCRAPING states)
+  // ── CLAUDE AI for off-topic / freeform questions ──────────────────────
   if (convState !== 'DONE' && convState !== 'SCRAPING') {
-    const ot = detectOffTopic(lower);
-    if (ot) {
+    if (isLandingOffTopic(lower, convState)) {
       const rs = RESTATE[convState] || {};
+      const aiReply = await callLandingAI(input, STATE_HINTS[convState] || 'Getting started');
+      if (aiReply) {
+        return buildRaw(aiReply, rs.qrs || [], {});
+      }
+      // Fallback: basic off-topic handling
+      const ot = detectOffTopic(lower);
       if (ot === 'confused') {
         return buildRaw(CONFUSED[convState] || `Let me clarify: ${rs.q || 'how can I help?'}`, rs.qrs || [], {});
       }
       if (ot === 'pricing') {
         return buildRaw(
-          `Free 14-day trial, then from £9/month — no card needed. Now let's build your guidebook! ${rs.q || ''}`,
+          `Free 14-day trial, no card needed. Touch Stay works for all kinds of guides — vacation rentals, staff handbooks, events, and more. ${rs.q || ''}`,
           rs.qrs || [], {}
         );
       }
       if (ot === 'about') {
         return buildRaw(
-          `Touch Stay is a digital guidebook for guests — any device, no app download. Hosts save ~3h/week on messages. ${rs.q || ''}`,
+          `Touch Stay is a guest experience platform — digital guides for any device, no app needed. Works for vacation rentals, hotels, employee onboarding, events, and more. ${rs.q || ''}`,
           rs.qrs || [], {}
         );
       }
+      // Generic off-topic fallback
+      return buildRaw(
+        `Great question! Touch Stay supports all types of guides — vacation rentals, staff handbooks, events, weddings, and more. Let's get yours set up! ${rs.q || ''}`,
+        rs.qrs || [], {}
+      );
+    }
+
+    // Simple off-topic patterns (short inputs that don't match isLandingOffTopic)
+    const ot = detectOffTopic(lower);
+    if (ot) {
+      const rs = RESTATE[convState] || {};
+      if (ot === 'confused') return buildRaw(CONFUSED[convState] || `Let me clarify: ${rs.q || 'how can I help?'}`, rs.qrs || [], {});
+      if (ot === 'pricing') return buildRaw(`Free 14-day trial, no card needed. ${rs.q || ''}`, rs.qrs || [], {});
+      if (ot === 'about') return buildRaw(`Touch Stay is a guest experience platform — guides for any device, no app. ${rs.q || ''}`, rs.qrs || [], {});
     }
   }
 
