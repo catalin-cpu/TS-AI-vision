@@ -60,10 +60,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ─── GUIDEBOOK STATE ──────────────────────────────────────────────────────
 let guidebook = {
-  propertyName: 'Villa Azura',
+  propertyName: 'Property Name',
   propertyType: 'villa',
-  location:     'Amalfi Coast, Italy',
-  hostName:     'Marco & Sofia',
+  location:     'Your location',
+  hostName:     '',
   hostEmail:    '',
   hostPhone:    '',
   checkinTime:  '3:00 PM',
@@ -93,7 +93,9 @@ const RESTATE = {
   PLATFORM_LINK:    { q: 'Where do you promote it? Share an Airbnb or Booking.com link for auto-import, or say "add manually".',  qrs: ["Here's my Airbnb link", "I'll add manually"] },
   MANUAL_LOCATION:  { q: 'Where is the property located? City and country is fine.',               qrs: [] },
   MANUAL_CONTACT:   { q: 'What\'s your name and how can guests contact you?',                      qrs: ['Skip contact for now'] },
+  CHECK_TIMES:      { q: 'What are your check-in and check-out times?',                            qrs: ['3 PM / 11 AM', '4 PM / 10 AM', 'Skip for now'] },
   WANT_SAVE:        { q: 'Would you like to add more details, or create your free account and do that later?', qrs: ['Add details now', 'Create account & do it later'] },
+  EDIT_PICK:        { q: 'Which topic would you like to edit?',                                                qrs: ['Check-in', 'About the Home', 'Local Tips', 'House Rules'] },
   ADDING_MORE:      { q: 'Just tell me what to add and I\'ll put it in.',                                      qrs: ['WiFi password', 'House rules', 'Local tips'] },
 };
 
@@ -103,7 +105,9 @@ const CONFUSED = {
   PLATFORM_LINK:   `Do you list on Airbnb or Booking.com? Share a link to auto-import, or say "add manually".`,
   MANUAL_LOCATION: `Where is the property? City and country works — e.g. "Barcelona, Spain".`,
   MANUAL_CONTACT:  `Your name and how guests can reach you (email + optional phone).`,
+  CHECK_TIMES:     `What time can guests check in and out? e.g. "3 PM check-in, 11 AM check-out"`,
   WANT_SAVE:       `Add more details now (WiFi, rules, tips) or create your free account and do it later?`,
+  EDIT_PICK:       `Which topic would you like to edit? Pick one from the grid.`,
   ADDING_MORE:     `Just tell me what to add — WiFi details, house rules, local tips, parking…`,
 };
 
@@ -201,10 +205,13 @@ Keep responses to 2-3 sentences. Be conversational.
 function isLandingOffTopic(input, state) {
   const low = input.toLowerCase();
   if (low.length < 12) return false;
+  // Never intercept known quick-reply buttons for the current state
+  const qrs = RESTATE[state]?.qrs || [];
+  if (qrs.some(q => q.toLowerCase() === low)) return false;
   // Questions
   if (low.includes('?')) return true;
   // Feature/product questions
-  if (low.match(/\b(employ|staff|team|wedding|event|different|another|type of guide|kind of guide|can i|can you|do you|tell me|how does|what is|what about|pricing|cost|plan|integrat|pms|chatbot|store|review|campaign|contact|viator)\b/)) return true;
+  if (low.match(/\b(employ|staff|team|wedding|event|different|another|type of guide|kind of guide|can i|can you|do you|tell me|how does|what is|what about|pricing|cost|plan|integrat|pms|chatbot|store|review|campaign|viator)\b/)) return true;
   // Unrelated statements
   if (low.match(/\b(i want|i need|i'd like|i would like|actually|instead|rather)\b/) && low.match(/\b(different|other|another|staff|employ|team|not a|not for)\b/)) return true;
   return false;
@@ -237,7 +244,9 @@ const STATE_HINTS = {
   PLATFORM_LINK: 'Asking if they list on Airbnb or Booking.com so we can auto-import',
   MANUAL_LOCATION: 'Asking where the property is located',
   MANUAL_CONTACT: 'Asking for their name and contact details',
+  CHECK_TIMES: 'Asking for check-in and check-out times',
   WANT_SAVE: 'Asking if they want to add more details or create their account',
+  EDIT_PICK: 'Asking which guidebook topic they want to edit',
   ADDING_MORE: 'They chose to add more details — asking what to add',
 };
 
@@ -292,7 +301,9 @@ async function simulateAnna(input) {
     case 'PLATFORM_LINK': return doPlatformLink(input);
     case 'MANUAL_LOCATION': return doLocation(input);
     case 'MANUAL_CONTACT': return doContact(input);
+    case 'CHECK_TIMES': return doCheckTimes(input);
     case 'WANT_SAVE': return doWantSave(input);
+    case 'EDIT_PICK': return doEditPick(input);
     case 'ADDING_MORE': return doAddMore(input);
     default:
       return buildRaw(`Just fill in the form above to save your guidebook and get your shareable link! 🎉`, [], {});
@@ -364,12 +375,36 @@ function doContact(input) {
   if (phoneM) guidebook.hostPhone = phoneM[0].trim();
 
   updateCoverText();
-  convState = 'WANT_SAVE';
+  convState = 'CHECK_TIMES';
   const first = guidebook.hostName?.split(' ')[0] || '';
   return buildRaw(
-    `${first ? `Thanks, ${first}!` : `Got it!`} Would you like to <strong>add details now</strong> (WiFi, rules, tips) or <strong>create your free account</strong> and do it later?`,
+    `${first ? `Thanks, ${first}!` : `Got it!`} What are your <strong>check-in and check-out times</strong>?`,
+    ['3 PM / 11 AM', '4 PM / 10 AM', 'Skip for now'],
+    { hostName: guidebook.hostName }
+  );
+}
+
+function doCheckTimes(input) {
+  const lower = input.toLowerCase();
+  if (!lower.includes('skip')) {
+    // Parse times like "3 PM / 11 AM" or "check-in 3pm checkout 11am"
+    const times = input.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM))/g);
+    if (times && times.length >= 2) {
+      guidebook.checkinTime = times[0].trim();
+      guidebook.checkoutTime = times[1].trim();
+    } else if (times && times.length === 1) {
+      guidebook.checkinTime = times[0].trim();
+    } else {
+      guidebook.checkinTime = input.trim();
+    }
+  }
+  updateCoverText();
+  convState = 'WANT_SAVE';
+  const saved = !lower.includes('skip');
+  return buildRaw(
+    `${saved ? '✓ Check-in/out times saved.' : 'No problem!'} Would you like to <strong>add more details</strong> (WiFi, rules, tips) or <strong>create your free account</strong> and do it later?`,
     ['Add details now', 'Create account & do it later'],
-    { hostName: guidebook.hostName, showGrid: true }
+    { checkinTime: guidebook.checkinTime, checkoutTime: guidebook.checkoutTime, showGrid: true }
   );
 }
 
@@ -386,23 +421,40 @@ function doWantSave(input) {
     );
   }
 
+  // "Edit" path — user wants to edit existing topics
+  if (lower.match(/\bedit\b|\bchange\b|\bmodify\b|\bupdate\b/)) {
+    convState = 'EDIT_PICK';
+    if (!gridBuilt) buildGrid();
+    else setState('grid');
+    const topicNames = Object.keys(guidebook.sections);
+    return buildRaw(
+      `Here's your guidebook — which topic would you like to edit?`,
+      topicNames.length > 0 ? topicNames.slice(0, 4) : ['Check-in', 'About the Home', 'Local Tips', 'House Rules'],
+      {}
+    );
+  }
+
   // "Set up details now" path — any detail type
   if (lower.match(/set.*up|detail|now|wifi|wi.?fi|internet|password|network/)) {
     convState = 'ADDING_MORE'; addingCtx = 'wifi';
+    if (!gridBuilt) buildGrid(); else setState('grid');
     return buildRaw(`What's the <strong>WiFi name and password</strong>?`, [], {});
   }
   if (lower.match(/rule|smok|pet|nois|quiet|party/)) {
     convState = 'ADDING_MORE'; addingCtx = 'rules';
+    if (!gridBuilt) buildGrid(); else setState('grid');
     return buildRaw(`What are your main house rules?`,
       ['No smoking indoors', 'No parties', 'Pets welcome', 'Quiet after 10pm'], {});
   }
   if (lower.match(/tip|restaurant|local|hidden|recommend/)) {
     convState = 'ADDING_MORE'; addingCtx = 'tips';
+    if (!gridBuilt) buildGrid(); else setState('grid');
     return buildRaw(`Your top 2–3 local tips — restaurants, hidden gems, anything guests love?`,
       ['Best local restaurant', 'A hidden viewpoint', 'Best beach or walk'], {});
   }
   if (lower.match(/add|more|another|section/)) {
     convState = 'ADDING_MORE'; addingCtx = 'general';
+    if (!gridBuilt) buildGrid(); else setState('grid');
     return buildRaw(`What would you like to add?`,
       ['WiFi password', 'House rules', 'Local tips', 'Parking info'], {});
   }
@@ -411,6 +463,29 @@ function doWantSave(input) {
   return buildRaw(
     `<strong>Add details now</strong> (WiFi, rules, tips) or <strong>create your free account</strong> and do it later?`,
     ['Add details now', 'Create account & do it later'], {}
+  );
+}
+
+function doEditPick(input) {
+  const lower = input.toLowerCase();
+  // Match against known section names / topics
+  const allTopics = [...Object.keys(guidebook.sections), ...TOPIC_TEMPLATES.map(t => t.title)];
+  const match = allTopics.find(t => lower.includes(t.toLowerCase().split(' ')[0].toLowerCase()));
+  if (match) {
+    editTopic(match);
+    convState = 'WANT_SAVE';
+    return buildRaw(
+      `Editing <strong>${match}</strong> — make your changes in the editor and hit Save when you're done.`,
+      ['Done editing'],
+      {}
+    );
+  }
+  // No match — ask again
+  const topicNames = Object.keys(guidebook.sections);
+  return buildRaw(
+    `Which topic would you like to edit? Pick one from the grid or type the name.`,
+    topicNames.length > 0 ? topicNames.slice(0, 4) : ['Check-in', 'About the Home', 'Local Tips', 'House Rules'],
+    {}
   );
 }
 
@@ -587,16 +662,29 @@ function applyUpdate(u) {
 
 // ─── COVER TEXT UPDATER ───────────────────────────────────────────────────
 function updateCoverText() {
-  // Only update the live preview when data came from a real scrape.
-  // The manual-path conversation collects info but keeps the demo
-  // template visible until the user has a real imported guidebook.
-  if (!guidebook.scraped) return;
   const pn = document.getElementById('prop-name');
   const pa = document.getElementById('prop-addr');
   const gr = document.getElementById('host-greeting');
-  if (pn && guidebook.propertyName) pn.textContent = guidebook.propertyName;
-  if (pa && guidebook.location)     pa.textContent = guidebook.location;
-  if (gr && guidebook.hostName)     gr.innerHTML   = `Hi, I'm your host, ${guidebook.hostName} 👋`;
+  const ci = document.getElementById('checkin-val');
+  const co = document.getElementById('checkout-val');
+  if (pn && guidebook.propertyName && guidebook.propertyName !== 'Property Name')
+    pn.textContent = guidebook.propertyName;
+  if (pa && guidebook.location && guidebook.location !== 'Your location')
+    pa.textContent = guidebook.location;
+  if (gr && guidebook.hostName)
+    gr.innerHTML = `Hi, I'm your host, ${guidebook.hostName} 👋`;
+  if (ci && guidebook.checkinTime)  ci.textContent = guidebook.checkinTime;
+  if (co && guidebook.checkoutTime) co.textContent = guidebook.checkoutTime;
+  // Update hero image based on property type
+  if (guidebook.propertyType) {
+    const src = HERO_IMGS[guidebook.propertyType] || HERO_IMGS.villa;
+    const photo = document.getElementById('hero-photo');
+    if (photo && !photo.dataset.customSrc) {
+      const img = new Image();
+      img.onload = () => { photo.style.backgroundImage = `url('${src}')`; };
+      img.src = src;
+    }
+  }
 }
 
 // ─── PREVIEW RENDERING ────────────────────────────────────────────────────
@@ -683,7 +771,7 @@ function openModal(name) {
 function closeModal() { document.getElementById('modal').classList.remove('on'); }
 
 function setState(id) {
-  ['empty','skel','cover','grid'].forEach(s => {
+  ['empty','skel','cover','grid','topic'].forEach(s => {
     const el = document.getElementById('st-' + s);
     if (!el) return;
     el.classList.toggle('on', s === id);
@@ -1518,14 +1606,55 @@ function editTopic(name) {
   const tmpl = TOPIC_TEMPLATES.find(t => t.title === name) || { title: name, text: '', img: '' };
   const titleInp = document.getElementById('te-title-inp');
   const bodyInp  = document.getElementById('te-content');
+  const footerName = document.getElementById('te-footer-name');
   if (titleInp) titleInp.value = tmpl.title;
   if (bodyInp)  bodyInp.value  = tmpl.text.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+  if (footerName) footerName.textContent = tmpl.title;
   editor.classList.add('on');
+  // Show topic detail in the preview phone (if on landing page)
+  renderTopicDetail(name);
+}
+
+function renderTopicDetail(topicName) {
+  const scroll = document.getElementById('topic-scroll');
+  const hdrTitle = document.getElementById('topic-hdr-title');
+  if (!scroll) return;
+  // Find matching template or guidebook section
+  const tmpl = TOPIC_TEMPLATES.find(t => t.title === topicName);
+  const sectionItems = guidebook.sections[topicName];
+  const img = tmpl?.img || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=60';
+  const text = tmpl ? tmpl.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '') :
+    sectionItems ? sectionItems.join('. ') : 'Your host is adding this content — check back soon.';
+  if (hdrTitle) hdrTitle.textContent = topicName;
+  scroll.innerHTML = `
+    <div class="gb-topic-section">
+      <div class="gb-topic-section-hdr">
+        <div class="gb-topic-section-title">${topicName}</div>
+        <div class="gb-topic-section-chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <img class="gb-topic-section-img" src="${img}" alt="">
+      <div class="gb-topic-section-body">${text}</div>
+      <div class="gb-topic-section-foot">
+        <span>Did you find this helpful?</span>
+        <div class="gb-topic-helpful-btns">
+          <div class="gb-topic-helpful-btn">👍 Yes</div>
+          <div class="gb-topic-helpful-btn">👎 No</div>
+        </div>
+      </div>
+    </div>`;
+  setState('topic');
 }
 
 function closeTopicEditor() {
   const editor = document.getElementById('topic-editor');
   if (editor) editor.classList.remove('on');
+  // Return preview to grid if it was showing topic detail
+  if (previewStage === 'topic') {
+    if (gridBuilt) setState('grid');
+    else setState('cover');
+  }
 }
 
 function saveTopicEditor() {
@@ -1535,8 +1664,41 @@ function saveTopicEditor() {
   if (title) appAddMsg('a', `✅ <strong>${title}</strong> updated — live instantly for your guests.`);
 }
 
+function syncAdvancedPanel() {
+  // Populate Advanced Mode fields from guidebook state
+  const ci = document.getElementById('adv-checkin');
+  const co = document.getElementById('adv-checkout');
+  if (ci) ci.textContent = guidebook.checkinTime  || '3:00 PM';
+  if (co) co.textContent = guidebook.checkoutTime || '11:00 AM';
+
+  const propName = guidebook.propName || guidebook.propertyName || 'My Property';
+  const el = document.getElementById('adv-prop-sel-name');
+  if (el) el.textContent = propName;
+  const gn = document.getElementById('adv-guide-name');
+  if (gn) gn.textContent = propName;
+
+  const cn = document.getElementById('adv-contact-name');
+  if (cn) cn.textContent = guidebook.hostName  || '—';
+  const ce = document.getElementById('adv-contact-email');
+  if (ce) ce.textContent = guidebook.hostEmail || '—';
+  const cp = document.getElementById('adv-contact-phone');
+  if (cp) {
+    cp.textContent = guidebook.hostPhone || 'Not set';
+    cp.classList.toggle('adv-contact-empty', !guidebook.hostPhone);
+  }
+  const addr = document.getElementById('adv-address');
+  if (addr) addr.textContent = guidebook.location || '—';
+}
+
 function switchToAdvanced() {
-  appAddMsg('a', `Advanced mode is coming soon — full section editing, custom colours, HTML blocks. Stay tuned! 🛠️`);
+  syncAdvancedPanel();
+  document.getElementById('adv-panel').classList.add('on');
+  document.querySelector('.app-chat-panel').style.display = 'none';
+}
+
+function switchToSimple() {
+  document.getElementById('adv-panel').classList.remove('on');
+  document.querySelector('.app-chat-panel').style.display = '';
 }
 
 function transitionToApp(displayName, email) {
@@ -1723,6 +1885,7 @@ window.editTopic        = editTopic;
 window.closeTopicEditor = closeTopicEditor;
 window.saveTopicEditor  = saveTopicEditor;
 window.switchToAdvanced = switchToAdvanced;
+window.switchToSimple   = switchToSimple;
 
 // ─── INIT ─────────────────────────────────────────────────────────────────
 (function init() {
